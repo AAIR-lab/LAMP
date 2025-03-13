@@ -2418,8 +2418,14 @@ class LAMP(object):
         for a in action_set:
             if a.action_id == id:
                 return a
+    
+    def get_latest_model_num(self,):
+        files = [f for f in os.listdir(Config.DATA_MISC_DIR) if os.path.isfile(f)]
+        prefix = Config.DATA_MISC_DIR+self.file_prefix+"{}_".format(Config.DOMAIN_NAME)
 
-    def testing(self,execute=False,config=None,generate=False,get_domain_flag=False,model_num=0,model_update_flag=False,seed_prefix=0,experiment_flag=False,seed=0):
+        return len([f for f in files if f.startswith(prefix)])
+
+    def testing(self,execute=False,config=None,generate=False,get_domain_flag=False,model_num=1,model_update_flag=False,seed_prefix=0,experiment_flag=False,seed=0):
         self.seed = seed
         start_time = time.time()
         replanning_time_list = []
@@ -2428,6 +2434,51 @@ class LAMP(object):
         actions_refined_in_plans = []
         complete_transition_list = []
         
+        object_name_list = self.get_object_list_from_env_state(self.sim_object.get_current_state())
+        self.object_name_list = object_name_list
+
+        new_actions_learnt_flag = False
+        self.object_dictionary=self.get_object_dictionary(object_name_list) 
+
+        model_num = min(self.get_latest_model_num(), model_num)
+        init_model_num = copy.deepcopy(model_num)
+        latest_model_num = copy.deepcopy(init_model_num)
+
+        if model_num == 0:
+            self.data,self.env_traj_dict = self.load_data()
+            self.og_lifted_relations_dict = self.get_lifted_relations_dict(object_name_list)
+            self.new_lifted_relations_dict = copy.deepcopy(self.og_lifted_relations_dict)    
+            
+            if self.aux_list is None:
+                self.aux_list = self.get_auxilary_preds()
+            
+            if not(self.graph_loaded):
+                self.transitions_used = self.get_graph(generate=generate)
+
+            self.transition_clusters = self.generate_transition_clusters(generate=generate)
+            self.actions = self.gen_actions(self.transition_clusters)
+            self.og_lifted_relations_dict = self.get_lifted_relations_dict(object_name_list)
+            self.new_lifted_relations_dict = copy.deepcopy(self.og_lifted_relations_dict)
+            self.og_relations = copy.deepcopy(self.og_lifted_relations_dict)
+            
+            model_num += 1
+
+        else:
+            model_objects = self.load_model(model_num)
+            self.og_relations = model_objects["og_relations"]
+            self.data = copy.deepcopy(model_objects["rcrs"])
+            self.transition_clusters = self.generate_transition_clusters()
+            self.actions = model_objects["actions"]
+            self.og_lifted_relations_dict = copy.deepcopy(self.og_relations)
+            _,self.new_lifted_relations_dict = self.add_relations_to_dict(relations_dict=copy.deepcopy(self.og_lifted_relations_dict),
+                                                                          relations=self.relations_to_learn)
+
+            if self.aux_list is None:
+                self.aux_list = self.get_auxilary_preds()
+            
+            if not(self.graph_loaded):
+                self.transitions_used = self.get_graph(generate=generate)
+
         if self.sim_use:
             if experiment_flag:
                 data = self.load_ll_state_pair(prefix=seed_prefix)
@@ -2446,11 +2497,12 @@ class LAMP(object):
             
             else:
                 objects_not_found = []
-                if Config.OBJECT_NAME[0] in self.data:
-                    rcr_dict = self.data[Config.OBJECT_NAME[0]]
+                req_relations = [self.og_lifted_relations_dict[r] for r in self.og_lifted_relations_dict.keys() if set(r.split("_")) == set([Config.OBJECT_NAME[0],Config.SURFACE_NAME])]
+                if len(req_relations) > 0:
+                    req_relation = [req_relations[0][r] for r in req_relations[0].keys() if r != 0]
                 else:
-                    rcr_dict = {}
-                init_env_state,goal_env_state,traj_config = self.sim_object.setup_exp(config,rcr_dict=rcr_dict)
+                    req_relation = []
+                init_env_state,goal_env_state,traj_config = self.sim_object.setup_exp(config,req_relation=req_relation)
                 objects_to_move = -1
                 self.sim_object.remove_droparea()
             
@@ -2477,53 +2529,6 @@ class LAMP(object):
             object_name_list = env_data["object_name_list"]
             init_state = env_data["init_state"]
             goal_state = env_data["goal_state"]
-        
-        self.object_name_list = object_name_list
-        init_model_num = copy.deepcopy(model_num)
-        latest_model_num = copy.deepcopy(init_model_num)
-
-        new_actions_learnt_flag = False
-        self.object_dictionary=self.get_object_dictionary(object_name_list) 
-
-        if model_num == 0:
-            # if "Keva" in Config.DOMAIN_NAME or "CafeWorld" in Config.DOMAIN_NAME or "Jenga" in Config.DOMAIN_NAME:
-            # else:
-            #     self.data = self.load_data()
-
-            self.data,self.env_traj_dict = self.load_data()
-            self.og_lifted_relations_dict = self.get_lifted_relations_dict(object_name_list)
-            self.new_lifted_relations_dict = copy.deepcopy(self.og_lifted_relations_dict)    
-            
-            if self.aux_list is None:
-                self.aux_list = self.get_auxilary_preds()
-            
-            if not(self.graph_loaded):
-                self.transitions_used = self.get_graph(generate=generate)
-
-            self.transition_clusters = self.generate_transition_clusters(generate=generate)
-            self.actions = self.gen_actions(self.transition_clusters)
-            self.og_lifted_relations_dict = self.get_lifted_relations_dict(object_name_list)
-            self.new_lifted_relations_dict = copy.deepcopy(self.og_lifted_relations_dict)
-            self.og_relations = copy.deepcopy(self.og_lifted_relations_dict)
-            
-            model_num += 1
-
-        else:
-            model_objects = self.load_model(model_num)
-            self.og_relations = model_objects["og_relations"]
-            self.data = copy.deepcopy(model_objects["rcrs"])
-            # self.transition_clusters = copy.deepcopy(model_objects["base_transition_clusters"])
-            self.transition_clusters = self.generate_transition_clusters()
-            self.actions = model_objects["actions"]
-            self.og_lifted_relations_dict = self.get_lifted_relations_dict(object_name_list)
-            _,self.new_lifted_relations_dict = self.add_relations_to_dict(relations_dict=copy.deepcopy(self.og_lifted_relations_dict),
-                                                                          relations=self.relations_to_learn)
-
-            if self.aux_list is None:
-                self.aux_list = self.get_auxilary_preds()
-            
-            if not(self.graph_loaded):
-                self.transitions_used = self.get_graph(generate=generate)
 
         current_num_actions = len(self.actions)
         init_relations_count = {}

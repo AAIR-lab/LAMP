@@ -127,7 +127,7 @@ def declare_config(domain_name,robot_name=None):
         "CafeWorld": ["can"],
         "Packing": ["can"],
         "Jenga": ["jenga"],
-        "DinnerTable": ["bowl", "can"]
+        "DinnerTable": ["bowl", "glass"]
     }
 
     ROBOT_DICT = {
@@ -974,8 +974,8 @@ def declare_config(domain_name,robot_name=None):
     DOMAIN_FILE = PDDL_DIR + "domain.pddl"
     # PROBLEM_DIR = PDDL_DIR + DOMAIN_NAME + "/problem_files/"
 
-    IMMOVABLE_OBJECTS = LOCATION_NAME + ["droparea","spawnarea","surface"]
-    NON_RELATION_OBJECTS = ["droparea","spawnarea","table6","world_final"]
+    IMMOVABLE_OBJECTS = LOCATION_NAME + ["droparea","spawnarea","surface","tabletop"]
+    NON_RELATION_OBJECTS = ["droparea","spawnarea","table6","world_final","tabletop"]
     AXIS_MAP = {
         "Keva": {'x':0.059, #0.05850000999999999
                 'y':0.0115, #0.011499999859999999

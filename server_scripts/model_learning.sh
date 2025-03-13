@@ -22,7 +22,7 @@ docker container prune -f
 
 echo "Data Collection for Domain - $domain:"
 command="python gen_data.py -d $domain -r $robot"
-docker run --name env --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
+docker run --name env --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
 wait
 
 docker stop env
@@ -30,7 +30,7 @@ docker container prune -f
 
 echo "Data Augmentation Starting: "
 command="python augment_data.py -d $domain"
-docker run --name env --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
+docker run --name env --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
 wait
 
 docker stop env
@@ -38,7 +38,7 @@ docker container prune -f
 
 echo "Learning RCRs: "
 command="python gen_rom.py -d $domain --seed $seed"
-docker run --name env --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
+docker run --name env --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
 wait
 
 docker stop env
@@ -51,5 +51,5 @@ fi
 
 echo "Learning Model and Solving a Problem: $problem"
 command="python gen_graph.py -d $domain --seed $seed -t $problem"
-docker run --name env --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
+docker run --name env --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
 wait

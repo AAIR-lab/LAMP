@@ -53,7 +53,7 @@ def GetDomain(robot_name="Jenga"):
             self.seeds = []
             self.object_names = set()
             self.init_config = {}
-            self.env.Load(Config.ENV_DIR + env_name + ".dae")
+            self.env.Load(Config.ENV_DIR + "env0.dae")
             drop = self.env.GetKinBody("droparea")
             drop_t = drop.GetTransform()
             self.env_obstacle_num = 10
@@ -71,7 +71,7 @@ def GetDomain(robot_name="Jenga"):
             self.collision_set = set([drop])
             for obj_name in self.bound_object_name:
                 self.collision_set.add(self.env.GetKinBody(obj_name))
-            self.clearance = 0.0
+            self.clearance = 0.05
             self.obj_h = 0.05
             self.env_limits = self.get_env_limits()
             self.env_y_limits = self.env_limits[1] #[y_min,y_max]
@@ -98,10 +98,6 @@ def GetDomain(robot_name="Jenga"):
                 self.random = random==0
             elif random is not None:
                 self.random = random
-            
-            if complete_random:
-                self.random = True
-                random = 0
             
             self.complete_random = complete_random
 
@@ -200,12 +196,11 @@ def GetDomain(robot_name="Jenga"):
             t = np.matmul(t,wrist_pose_wrt_gripper)
             
             valid_pose = None
-            grasp_pose = poseFromMatrix(t)
             # table_t = self.env.GetKinBody("small_table").GetTransform()
             # table_t[2,3] = self.table_h - 0.1
             # self.env.GetKinBody("small_table").SetTransform(table_t)
             
-            ik_sols = self.get_ik_solutions(grasp_pose)
+            ik_sols = self.get_ik_solutions(t,collision_fn=self.collision_check)
             if len(ik_sols) > 0:
                 valid_pose = ik_sols
 
@@ -452,151 +447,7 @@ def GetDomain(robot_name="Jenga"):
                 self.set_env_state(t)
                 time.sleep(0.01)
 
-        def random_start(self):
-            i = 0        
-            flag = 0
-            j = 0
-            pbar = tqdm.tqdm(total=self.n)
-            with self.env:
-            # if True:
-                while i < self.n:
-                    transform_dict = self.randomize_env()
-                    random_stage_to_collect = np.random.randint(low=-2,high=2)
-                    goalLoc_list = self.set_random_goalLoc()
-
-                    while j <= self.j:
-                        state_list = []
-                        self.robot.SetActiveDOFValues(self.init_pose)
-                        self.reset_planks(transform_dict)
-
-                        for goalLoc in goalLoc_list:
-                            traj_1 = None
-                            traj_2 = None
-                            traj_3 = None
-                            init_state = []
-                            state1 = []
-                            state2 = []
-                            if not self.compute_mp:
-                                grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                                init_state.append(self.get_one_state())
-
-                            plank_count = int(str(goalLoc.GetName()).split("_")[-1])-1
-                            #reaching plank
-                            counter = 0
-                            while traj_1 is None:
-                                if random_stage_to_collect >= 0:
-                                    gp = self.sample_grasp_pose(self.plank_list[plank_count].GetName())
-                                elif random_stage_to_collect == -1:
-                                    gp,_ = self.random_config_robot(current_dof=self.robot.GetActiveDOFValues())
-                                else:
-                                    break
-                                
-                                if gp is not None:
-                                    if self.compute_mp:
-                                        traj_1 = self.compute_motion_plan(gp)
-                                    else:
-                                        traj_1 = [gp]
-
-                                counter+=1
-                                if (counter == 10 and j < 1):
-                                    flag = 1
-                                    break
-                                elif counter >= 30 and traj_1 is None:
-                                    flag=2
-                                    break
-                                
-                            if flag>0:
-                                break
-                            
-                            time.sleep(0.001)
-                            if random_stage_to_collect >= -1:
-                                self.set_to_last_waypoint(traj_1)
-                                grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                                state1 = self.get_state_list(traj_1,grab_flag=grabbed_flag)
-                                if random_stage_to_collect >= 0:
-                                    self.grab(self.plank_list[plank_count].GetName())
-                                    grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                                    one_state = self.get_one_state()
-                                    state1.append(one_state)
-
-                            #taking plank to droparea
-                            counter = 0
-                            while traj_2 is None:
-                                if random_stage_to_collect == -2:
-                                    gp = self.sample_grasp_pose(self.plank_list[plank_count].GetName())
-                                    if gp is not None:
-                                        self.set_to_last_waypoint([gp])
-                                        self.grab(self.plank_list[plank_count].GetName())
-                                        grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                                
-                                if gp is not None:
-                                    ep,_ = self.random_config_robot(current_dof=self.robot.GetActiveDOFValues())
-                                    if ep is not None:
-                                        if self.compute_mp:
-                                            traj_2 = self.compute_motion_plan(ep)
-                                        else:
-                                            traj_2 = [ep]
-
-                                counter+=1
-                                if (counter == 10 and j < 1) or (counter == 15 and traj_2 is None):
-                                    flag = 1
-                                    break
-                                elif counter >= 30 and traj_2 is None:
-                                    flag=2
-                                    break
-                                
-                            if flag>0:
-                                break
-
-                            time.sleep(0.001)
-                            self.set_to_last_waypoint(traj_2)
-                            self.collision_set.add(self.plank_list[plank_count])
-                            grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                            state2 = self.get_state_list(traj_2,grab_flag=grabbed_flag)
-                            # self.release()
-                            # grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                            # one_state = self.get_one_state()
-                            # state2.append(one_state)
-
-                            if random_stage_to_collect > 0:
-                                state_list.extend(init_state)
-                            state_list.extend(state1)
-                            state_list.extend(state2)
-                        
-                        if flag == 1:
-                            break
-                        elif flag == 2:
-                            flag = 0
-                            continue
-                        
-                        for obj in self.env.GetBodies():
-                            self.object_names.add(str(obj.GetName()))
-
-                        self.data.append(state_list)
-
-                        j += 1
-                        if j == self.j:
-                            break
-                    
-                    j=0
-                    if flag == 1:
-                        flag = 0
-                        continue
-                    
-                    pbar.update(1)
-                    i=i+1
-        
-            pbar.close()                    
-            time.sleep(5)
-            with self.env:
-                final_data = {"env_states": self.data,"object_list": list(self.object_names)}
-                path = Config.DATA_MISC_DIR+ self.env_name+"/"
-                if not os.path.exists(path):
-                    os.makedirs(path)
-                cPickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
-                print("{} data saved".format(self.env_name))
-
-        def start(self):
+        def start(self,complete_random=False):
             i = 0        
             flag = 0
             j = 0
@@ -642,9 +493,8 @@ def GetDomain(robot_name="Jenga"):
                             traj_2 = None
                             traj_3 = None
                             init_state = []
-                            if not self.compute_mp:
-                                grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                                init_state.append(self.get_one_state())
+                            grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
+                            init_state.append(self.get_one_state())
 
                             plank_count = int(str(goalLoc.GetName()).split("_")[-1])-1
                             #reaching plank
@@ -732,11 +582,20 @@ def GetDomain(robot_name="Jenga"):
                             self.set_to_last_waypoint(traj_3)
                             grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
                             state3 = self.get_state_list(traj_3,grab_flag=grabbed_flag)
+                            
+                            states = [init_state,state1,state2,state3]
+                            if complete_random:
+                                last_ind = np.random.randint(low=1,high=len(states))
+                            else:
+                                last_ind = len(states)
 
-                            state_list.extend(init_state)
-                            state_list.extend(state1)
-                            state_list.extend(state2)
-                            state_list.extend(state3)
+                            for state_num in range(last_ind):
+                                state_list.extend(states[state_num])
+
+                            # state_list.extend(init_state)
+                            # state_list.extend(state1)
+                            # state_list.extend(state2)
+                            # state_list.extend(state3)
 
                         if flag == 1:
                             break
@@ -1120,7 +979,7 @@ def GetDomain(robot_name="Jenga"):
             plank.SetTransform(t)
             return self.get_current_state()
 
-        def setup_exp(self,arg=None,rcr_dict=None,experiment_flag=False):
+        def setup_exp(self,arg=None,req_relation=None,experiment_flag=False):
             if not experiment_flag:    
                 with self.env:
                 # if True:

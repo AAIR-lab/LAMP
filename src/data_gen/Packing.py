@@ -318,7 +318,7 @@ def GetDomain(robot_name="MagneticGripper"):
 
             return True
         
-        def setup_exp(self,arg=None,rcr_dict=None,experiment_flag=False):
+        def setup_exp(self,arg=None,req_relation=None,experiment_flag=False):
             if not experiment_flag:
                 with self.env:
                 # if True:
@@ -326,8 +326,8 @@ def GetDomain(robot_name="MagneticGripper"):
                     self.drop_randomizer(x_offsets=[0.1,0.1],y_offsets=[0.1,0.1])
                     drop_t = droparea.GetTransform()
                     drop_pose = self.get_pose_from_transform(drop_t)
-                    rcr = rcr_dict["surface"]
-                    discretizer = Config.get_discretizer(obj1="surface",obj2=Config.OBJECT_NAME[0])
+                    rcr = [r.region for r in req_relation]
+                    discretizer = req_relation[0].discretizer
                     for obj in self.can_list:
                         sample_flag = True
                         while sample_flag:
@@ -511,7 +511,7 @@ def GetDomain(robot_name="MagneticGripper"):
             relative_t = get_relative_transform(obj.GetTransform(),camera_t)
             np.save(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name,transform_num),relative_t)
 
-        def start(self):
+        def start(self,complete_random=False):
             i = 0        
             flag = 0
             j = 0
@@ -536,10 +536,9 @@ def GetDomain(robot_name="MagneticGripper"):
                             traj_1 = None
                             traj_2 = None
                             traj_3 = None
-                            init_state = []
-                            if not self.compute_mp:
-                                grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
-                                init_state.append(self.get_one_state())
+
+                            grabbed_flag = getattr(self,"grabbed_flag_{}".format(self.id))
+                            init_state =  [self.get_one_state()]
 
                             plank_count = int(str(goalLoc.GetName()).split("_")[-1])-1
                             #reaching plank

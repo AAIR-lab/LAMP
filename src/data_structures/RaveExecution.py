@@ -252,7 +252,7 @@ def GetRaveExecution(domain_name,robot_name):
         
         def set_camera_wrt_obj(self,object_name,transform_num=1):
             obj = self.env.GetKinBody(object_name)
-            relative_t = np.load(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name,transform_num))
+            relative_t = np.load(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name.split("_")[0],transform_num))
             self.env.GetViewer().SetCamera(obj.GetTransform().dot(relative_t))
 
         def save_camera_angle_wrt_obj(self,object_name,transform_num=0):

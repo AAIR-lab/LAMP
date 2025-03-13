@@ -265,6 +265,7 @@ class Fetch(object):
         setattr(self,"grabbed_object_{}".format(self.id),None)
 
         self.gripper_link = self.robot.GetLink("wrist_roll_link") #TODO: test it with link between fingers.
+        self.base_link = self.robot.GetLink("base_link")
 
         self.grab_range = {
                             "can":[0.20,0.26],
@@ -282,6 +283,12 @@ class Fetch(object):
                                 }
 
         self.ik_link = self.gripper_link
+
+        self.urdf_string = None
+        with open(self.fetch_urdf,"r") as f:
+            self.urdf_string = f.read()
+
+        self.ik_solver = IK("base_link","wrist_roll_link",urdf_string=self.urdf_string)
 
     def load_robot(self):
         sedstr = "sed -i \"s|project_directory|"+Config.ROOT_DIR[:-1]+"|g\" " + Config.ROOT_DIR
@@ -335,41 +342,47 @@ class Fetch(object):
             _x = end_effector_solution[0,3]
             _y = end_effector_solution[1,3]
             _yaw = axisAngleFromRotationMatrix(end_effector_solution[:3,:3])[-1]
-            solutions = [[_x,_y,_yaw]]
+            solutions = [_x,_y,_yaw]
             self.activate_base_joints()
-            if collision_fn is not None: 
-                if Robot.check_collision(self.robot, solutions[0], collision_fn):
+            if collision_fn is not None and check_collisions: 
+                if Robot.check_collision(self.robot, solutions, collision_fn):
                     return [ ]
-        else:  
-            self.activate_manip_joints()
-            if check_collisions:
-                filter_option = IkFilterOptions.CheckEnvCollisions
-            else:
-                filter_option = IkFilterOptions.IgnoreEndEffectorCollisions
-            
-            with self.env:
-                ikmodel = databases.inversekinematics.InverseKinematicsModel(self.robot,
-                                                                             iktype=IkParameterization.Type.Transform6D)
-                if not ikmodel.load():
-                    ikmodel.autogenerate()
-                try:
-                    solutions = ikmodel.manip.FindIKSolutions(end_effector_solution, filter_option)
-                except:
-                    print("error")
-
-            if len(solutions) == 0:
-                print("NO IKs found, Probably Un-reachable transform")
         
-        if len(solutions) > 0:
-            if len(solutions) == 1:
-                i = 0
-            else:
-                i = np.random.randint(0,len(solutions))
         else:
-            return []
-        
-        return solutions[i]
+            self.activate_manip_joints()
+            current_state = self.robot.GetActiveDOFValues()
+            collision = check_collisions
+    
+            required_T = np.linalg.pinv(self.base_link.GetTransform()).dot(end_effector_solution)
+            pose = pose_from_transform(required_T)
+            pos = pose[:3]
+            orn = quatFromAxisAngle(pose[3:])
 
+            ik_count = 0
+            collision = True
+            while collision:
+                seed_state = [np.random.uniform(-3.14, 3.14)] * self.ik_solver.number_of_joints
+                solutions = self.ik_solver.get_ik(seed_state,
+                                                 pos[0], pos[1], pos[2],  # X, Y, Z
+                                                 orn[1], orn[2], orn[3], orn[0]  # QX, QY, QZ, QW
+                                                 )
+                ik_count += 1
+                if ik_count<=Config.MAX_IK_ATTEMPTS:
+                    if solutions is not None:
+                        if collision_fn is not None and check_collisions: 
+                            if Robot.check_collision(self.robot, solutions, collision_fn):
+                                collision=True
+                            else:
+                                collision = False
+                else:
+                    print("max ik attempts exceeded")
+                    solutions = []
+                    break
+            
+            self.robot.SetActiveDOFValues(current_state)
+            
+        return solutions
+                
     def grab(self,obj,arm=None):
         o = self.env.GetKinBody(obj)
         robot_t = self.gripper_link.GetTransform()

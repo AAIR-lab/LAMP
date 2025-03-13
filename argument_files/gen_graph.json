@@ -98,7 +98,7 @@
     "Packing":{
         "general":{
             "env_list": ["env1","env2"],
-            "model_num": 0,
+            "model_num": 1,
             "mp_flag": false,
             "planner": "KP",
             "k_plans": 1,
@@ -115,7 +115,7 @@
     "DinnerTable":{
         "general":{
             "env_list": ["env1","env2","env3", "env4"],
-            "model_num": 0,
+            "model_num": 1,
             "mp_flag": false,
             "planner": "FD",
             "k_plans": 1,

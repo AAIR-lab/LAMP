@@ -28,7 +28,7 @@ if __name__ == '__main__':
     argParser.add_argument("-v","--visualize",                help = "visualize the sim",                    action="store_true")
     argParser.add_argument("-p","--plank_count",              help = "plank count for exp",                  nargs="?",default=1)
     argParser.add_argument(     "--planks_in_init_state",     help = "planks_in_init_state",                 nargs="?",default=0)
-    argParser.add_argument("-g","--get_graph",                help = "get pruned or complete graph",         action="store_false")
+    argParser.add_argument("-g","--get_graph",                help = "get pruned or complete graph",         action="store_true")
     argParser.add_argument("-e","--execute",                  help = "execute the plan after search",        action="store_true")
     argParser.add_argument("-G","--goal_config_pairs",        help = "goal config pairs",                    nargs='*')
     argParser.add_argument("-a","--axis_for_offset",          help = "axis for offset",                      default="x")

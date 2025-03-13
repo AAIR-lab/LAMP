@@ -20,6 +20,8 @@ log_folder=$domain"_logs"
 path="$(pwd)"
 domain_model_folder=$domain"_model_files"
 
+bash $path/experiments_setup.sh -d $domain
+
 array=()
 if [[ -z "$seed" ]]; then
     for i in $(seq 1 1 10)
@@ -47,8 +49,8 @@ for t in "${array3[@]}"
 do
     echo "total_demo_count = $t"
     echo "robot = $robot"
-    command0="rm -rf /workspaces/LAMP/Data/$domain/misc/$t""_$seed""_* && echo $t files deleted" 
-    docker run -it --name env$name --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command0"
+    # command0="rm -rf /workspaces/OLAMP/Data/$domain/misc/$t""_$seed""_* && echo $t files deleted" 
+    # docker run --name env$name --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command0"
     docker container prune -f  
 
     for j in "${array[@]}"
@@ -58,21 +60,21 @@ do
         seed2=0
         seed_model_folder="seed_"$seed"_order_"$seed2
 
-        command1="cp -r /workspaces/$domain/misc/$t""_$seed""_*.p /workspaces/LAMP/Data/$domain/misc/ && echo $t files added"
-        docker run -it --name env$name --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command1"
+        command1="cp -r /workspaces/$domain/misc/$t""_$seed""_*.p /workspaces/OLAMP/Data/$domain/misc/ && echo $t files added"
+        docker run --name env$name --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command1"
         docker container prune -f   
 
-        # command1="cp -r /workspaces/$domain_model_folder/$seed_model_folder/$t""_*.p /workspaces/LAMP/Data/$domain/misc/"
-        # docker run -it --name env$name --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" --mount "type=bind,src=$path/$domain_model_folder,dst=/workspaces/$domain_model_folder" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command1"
+        # command1="cp -r /workspaces/$domain_model_folder/$seed_model_folder/$t""_*.p /workspaces/OLAMP/Data/$domain/misc/"
+        # docker run --name env$name --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" --mount "type=bind,src=$path/$domain_model_folder,dst=/workspaces/$domain_model_folder" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command1"
         # docker container prune -f 
 
         echo "different order seed = $seed2"
-        docker run -it --name env$name --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" --mount "type=bind,src=$path/$log_folder,dst=/workspaces/$log_folder" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && python timed_experiment.py -n $name -r $robot_name --domain $domain --problem_num $problem_num --seed $seed --object_count $object_count --total_demo_count $t --seed2 $seed2"
+        docker run --name env$name --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" --mount "type=bind,src=$path/$log_folder,dst=/workspaces/$log_folder" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && python timed_experiment.py -n $name -r $robot --domain $domain --problem_num $problem_num --seed $seed --total_demo_count $t --seed2 $seed2"
         sleep 2
         docker container prune -f    
 
-        command2="mkdir -p /workspaces/$domain_model_folder/$seed_model_folder && mv /workspaces/LAMP/Data/$domain/misc/$t""_$seed""_* /workspaces/$domain_model_folder/$seed_model_folder/ && echo $t files moved"
-        docker run -it --name env$name --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" --mount "type=bind,src=$path/$domain_model_folder,dst=/workspaces/$domain_model_folder" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command2"
+        command2="mkdir -p /workspaces/$domain_model_folder/$seed_model_folder && mv /workspaces/OLAMP/Data/$domain/misc/$t""_$seed""_* /workspaces/$domain_model_folder/$seed_model_folder/ && echo $t files moved"
+        docker run --name env$name --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" --mount "type=bind,src=$path/$domain_model_folder,dst=/workspaces/$domain_model_folder" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command2"
         docker container prune -f   
     done
 done

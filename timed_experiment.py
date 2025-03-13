@@ -137,9 +137,10 @@ while problems_completed < len(problem_list):
             i,
             seed,
             total_demo_count,
-            domain
+            domain,
+            Config.ROOT_DIR
         ]   
-        command = "python experiments.py -n {0} -a {1} -r {2} -o -p {3} --num_robots {4} -t {5} --create_domain_file --process_count {6} --problem_num {7} --model_num 1 --no_motion_plan --experiment_flag --seed {8} --total_demo_count {9} --ff -d {10}".format(*argument_list)
+        command = "python {11}experiments.py -n {0} -a {1} -r {2} -o -p {3} --num_robots {4} -t {5} --create_domain_file --process_count {6} --problem_num {7} --model_num 1 --no_motion_plan --experiment_flag --seed {8} --total_demo_count {9} --ff -d {10}".format(*argument_list)
     
     else:
         prefix = "{}_{}".format(total_demo_count,seed)
@@ -149,8 +150,8 @@ while problems_completed < len(problem_list):
             order_string = "-R"
         else:
             order_string = "--order_plank_placement"
-        argument_list = [name,None,None,axis,robot,num_robots,None,None,test_structure,plank_count,planks_in_init_state,latest_model_num,order_string,process_count,i,seed,total_demo_count,seed2,domain]
-        command = "python experiments.py -n {0} -a {3} -r {4} --num_robots {5} --kp 2000 -t {8} -p {9} -c {10} --create_domain_file -m --model_num {11} {12} --process_count {13} --problem_num {14} --experiment_flag --no_motion_plan --seed {15} --total_demo_count {16} --seed2 {17} -d {18}".format(*argument_list) 
+        argument_list = [name,None,None,axis,robot,num_robots,None,None,test_structure,plank_count,planks_in_init_state,latest_model_num,order_string,process_count,i,seed,total_demo_count,seed2,domain,Config.ROOT_DIR]
+        command = "python {19}experiments.py -n {0} -a {3} -r {4} --num_robots {5} --kp 2000 -t {8} -p {9} -c {10} --create_domain_file -m --model_num {11} {12} --process_count {13} --problem_num {14} --experiment_flag --no_motion_plan --seed {15} --total_demo_count {16} --seed2 {17} -d {18}".format(*argument_list) 
     
     file_suffix = "order_{}_seed_{}_demo_count_{}_problem_{}".format(seed2,seed,total_demo_count,i)
     p = start_process(command.split(" "),file_suffix) 

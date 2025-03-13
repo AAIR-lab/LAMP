@@ -164,9 +164,9 @@ def GetDomain(robot_name="Fetch"):
             # for traj in env_data["env_states"]:
             #     self.execute_traj(traj)
 
-            with open(Config.DATA_MISC_DIR+"200_0_rcr_indices.p") as f:
-                indices_data = cPickle.load(f)
-            rgn = indices_data["rcr_dict"]["freight"]["glassinitLoc"]
+            # with open(Config.DATA_MISC_DIR+"200_0_rcr_indices.p") as f:
+            #     indices_data = cPickle.load(f)
+            # rgn = indices_data["rcr_dict"]["freight"]["glassinitLoc"]
             self.randomize_env()
             # self.debug_plotting(region=rgn,obj1="glassinitLoc", obj2="freight")
             # self.debug_plotting(region=rgn,obj1="freight", obj2="glassinitLoc")
@@ -503,8 +503,7 @@ def GetDomain(robot_name="Fetch"):
                 grasp_T = world_T_obj.dot(rot_mat).dot(rot_Z).dot(obj_T_gripper)
                 grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
                 
-                grasp_pose = poseFromMatrix(grasp_T)
-                ik_sols = self.get_ik_solutions(grasp_pose)
+                ik_sols = self.get_ik_solutions(grasp_T,collision_fn=self.collision_check)
                 if len(ik_sols) > 0:
                     valid_pose = ik_sols
 
@@ -514,8 +513,8 @@ def GetDomain(robot_name="Fetch"):
                 r1 = matrixFromAxisAngle([0,math.pi/2.0,0])
                 r2 = matrixFromAxisAngle([math.pi/2.0,0,0])
 
-                grasp_pose = world_T_obj.dot(t1).dot(r1).dot(r2)
-                ik_sols = self.get_ik_solutions(grasp_pose)
+                grasp_T = world_T_obj.dot(t1).dot(r1).dot(r2)
+                ik_sols = self.get_ik_solutions(grasp_T,collision_fn=self.collision_check)
                 if len(ik_sols) > 0:
                     valid_pose = ik_sols
             
@@ -638,7 +637,7 @@ def GetDomain(robot_name="Fetch"):
 
             return traj_config
 
-        def randomize_env(self,given_surface_lists=None,rcr_dict=None,traj_count=0,traj_config=None,configs_to_exclude=set([])):
+        def randomize_env(self,given_surface_lists=None,req_relation=None,traj_count=0,traj_config=None,configs_to_exclude=set([])):
             self.collision_set.add(self.robot)
             for obj_name in self.bound_object_name:
                 self.collision_set.add(self.env.GetKinBody(obj_name))
@@ -808,7 +807,7 @@ def GetDomain(robot_name="Fetch"):
 
         def set_camera_wrt_obj(self,object_name,transform_num=1):
             obj = self.env.GetKinBody(object_name)
-            relative_t = np.load(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name,transform_num))
+            relative_t = np.load(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name.split("_")[0],transform_num))
             self.env.GetViewer().SetCamera(obj.GetTransform().dot(relative_t))
 
         def save_camera_angle_wrt_obj(self,object_name,transform_num=0):
@@ -819,14 +818,14 @@ def GetDomain(robot_name="Fetch"):
             np.save(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name,transform_num),relative_t)
         
         @blockPrinting
-        def start(self):
+        def start(self,complete_random=False):
             i = 0        
             flag = 0
             j = 0
             pbar = tqdm.tqdm(total=self.n)
             envlist = np.random.choice(list(range(1,self.n+1)),int(0.3*self.n))
             with self.env:
-            # if True:-
+            # if True:
                 if self.env.GetViewer() is not None:
                     self.set_camera_wrt_obj("world_final")
                 while i < self.n:
@@ -849,10 +848,7 @@ def GetDomain(robot_name="Fetch"):
                             initLoc = self.env.GetKinBody("{}initLoc_{}".format(object_name.split("_")[0],object_name.split("_")[1]))
                             initLoc_name = str(initLoc.GetName())
                             #KP_1
-                            if not self.compute_mp:
-                                state_1 = [self.get_one_state()]
-                            else:
-                                state_1 = []
+                            state_1 = [self.get_one_state()]
 
                             # print("sampling surface 1")
                             base_sample_1 = self.sample_robot_base(object_name=initLoc_name)
@@ -1414,7 +1410,7 @@ def GetDomain(robot_name="Fetch"):
         def setup_base_env(self):
            self.randomize_env()
 
-        def setup_exp(self,given_surface_lists=None,rcr_dict=None,experiment_flag=False):
+        def setup_exp(self,given_surface_lists=None,req_relation=None,experiment_flag=False):
             if not self.experiment_flag:
                 self.randomize_env(given_surface_lists)
             init_state = self.get_one_state()

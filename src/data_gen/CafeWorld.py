@@ -545,7 +545,7 @@ def GetDomain(robot_name="Fetch"):
                     grasp_T = world_T_obj.dot(grasp_T)
                     grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
                     grasp_pose = poseFromMatrix(grasp_T)
-                    ik_sols = self.get_ik_solutions(grasp_pose)
+                    ik_sols = self.get_ik_solutions(grasp_T,collision_fn=self.collision_check)
                     if len(ik_sols) > 0:
                         valid_pose = ik_sols
                         break
@@ -568,7 +568,7 @@ def GetDomain(robot_name="Fetch"):
                 grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
                 
                 grasp_pose = poseFromMatrix(grasp_T)
-                ik_sols = self.get_ik_solutions(grasp_pose)
+                ik_sols = self.get_ik_solutions(grasp_T,collision_fn=self.collision_check)
                 if len(ik_sols) > 0:
                     valid_pose = ik_sols
             
@@ -607,7 +607,7 @@ def GetDomain(robot_name="Fetch"):
                 
                 sample_obj_pose[2,3] += self.can_h/2.0
                 grasp_pose = sample_obj_pose.dot(wrist_pose_wrt_gripper)
-                ik_sols = self.get_ik_solutions(grasp_pose)
+                ik_sols = self.get_ik_solutions(grasp_pose,collision_fn=self.collision_check)
                 if len(ik_sols) > 0:
                     valid_ik = ik_sols
                 
@@ -724,7 +724,7 @@ def GetDomain(robot_name="Fetch"):
 
             return traj_config
 
-        def randomize_env(self,given_surface_lists=None,rcr_dict=None,traj_count=0,traj_config=None,configs_to_exclude=set([])):
+        def randomize_env(self,given_surface_lists=None,req_relation=None,traj_count=0,traj_config=None,configs_to_exclude=set([])):
             self.collision_set.add(self.robot)
             for obj_name in self.bound_object_name:
                 self.collision_set.add(self.env.GetKinBody(obj_name))
@@ -771,7 +771,7 @@ def GetDomain(robot_name="Fetch"):
                 else:
                     init_surface_type = "table"
 
-                if rcr_dict is None:
+                if req_relation is None:
                     if self.grasp_num is not None and self.match_quadrants:
                         if init_surface_id != 0:
                             q = self.grasp_num
@@ -796,10 +796,10 @@ def GetDomain(robot_name="Fetch"):
                         init_configs.append(init_config)
                 
                 else:
-                    rcr = rcr_dict["surface"]
+                    rcr = [r.region for r in req_relation]
                     sampler = getattr(self,"sample_can_{}".format(init_surface_type))
                     
-                    discretizer = Config.get_discretizer(obj1=can_name.split("_")[0],obj2="surface")
+                    discretizer = req_relation[0].discretizer
                     sample_flag = True
                     self.collision_set.add(self.env.GetKinBody(self.bound_object_name[0]))
                     while sample_flag:
@@ -813,7 +813,7 @@ def GetDomain(robot_name="Fetch"):
                             can.SetTransform(ll_T)
                             relative_pose = self.get_relative_pose(pose1=ll_P,pose2=init_surface_p)
                             discretized_pose = discretizer.get_discretized_pose(input_pose=relative_pose,is_relative=True)
-                            discretized_pose.append(self.grabbed_flag_1)
+                            discretized_pose.append(int(self.grabbed_flag_1))
 
                             if not (self.collision_check([can]) or self.obj_checker(can)):
                                 for region in rcr:
@@ -1025,7 +1025,7 @@ def GetDomain(robot_name="Fetch"):
             np.save(Config.ROOT_DIR+"camera_wrt_{}_{}.npy".format(object_name,transform_num),relative_t)
         
         @blockPrinting
-        def start(self):
+        def start(self,complete_random=False):
             i = 0        
             flag = 0
             j = 0
@@ -1063,10 +1063,7 @@ def GetDomain(robot_name="Fetch"):
                                 surface2_type = "table"
 
                             #KP_1
-                            if not self.compute_mp:
-                                state_1 = [self.get_one_state()]
-                            else:
-                                state_1 = []
+                            state_1 = [self.get_one_state()]
 
                             base_sampler = getattr(self,"sample_robot_base_{}".format(surface1_type))
 
@@ -1247,7 +1244,6 @@ def GetDomain(robot_name="Fetch"):
 
                             #KP_15
                             state_15 = self.get_state_block(traj=traj_7,config_tuple=goal_config)
-                            
 
                             states = [state_1,state_2,state_3,state_4_5,state_6,state_7,state_8,state_9,state_10,state_11_12,state_13,state_14,state_15]
                             if self.random != -1:
@@ -1595,13 +1591,13 @@ def GetDomain(robot_name="Fetch"):
         def setup_base_env(self):
             _,traj_config = self.randomize_env()
 
-        def setup_exp(self,given_surface_lists=None,rcr_dict=None,experiment_flag=False):
+        def setup_exp(self,given_surface_lists=None,req_relation=None,experiment_flag=False):
             if not experiment_flag: 
-                _,init_configs = self.randomize_env(rcr_dict=rcr_dict)
+                _,init_configs = self.randomize_env(req_relation=req_relation)
                 init_state = self.get_one_state()
 
                 configs_to_exclude = set([a for a,_ in init_configs])
-                _,goal_configs = self.randomize_env(rcr_dict=rcr_dict,configs_to_exclude=configs_to_exclude)
+                _,goal_configs = self.randomize_env(req_relation=req_relation,configs_to_exclude=configs_to_exclude)
 
                 traj_config = []
                 for i in range(len(init_configs)):
