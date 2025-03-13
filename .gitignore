@@ -1,0 +1,24 @@
+.idea*
+# .vscode*
+*.pyc
+Images/*
+*.csv
+*.pt
+./logs/*
+./Model/*
+*.png
+*/*.pyc
+*.dot
+Data/*
+Data*
+sas_plan
+FD
+FF
+sas_plan*
+output*
+output_sas
+FD.zip
+devcontainer.json
+Domains
+solved_plans
+Planners*

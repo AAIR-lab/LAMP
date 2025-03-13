@@ -1,0 +1,60 @@
+# version: '2'
+# services:
+#   novnc:  
+#     image: theasp/novnc:latest
+#     environment:
+#       # Adjust to your screen size
+#       - DISPLAY_WIDTH=1920
+#       - DISPLAY_HEIGHT=1080
+#       - RUN_XTERM=no
+#     ports:
+#       - 8080:8080
+      
+#   rcr:
+#     image: openrave:working
+#     environment:
+#       - DISPLAY=novnc:0.0
+#     depends_on:
+#       - novnc
+#     tty: true
+#     volumes:
+#       - ../../LearningRCR/:/workspaces/LearningRCR/
+
+#export NOVNC_PORT=8080 JEDAI_PORT=8000 => only at first to add the variables to ENV_VARIABLES
+#
+# NOVNC_PORT=8081 JEDAI_PORT=8001 && docker-compose -p instance1 up -d
+    # PORT is setting the env variable but need to have PORT as a variable in host machine's variables
+    # -p <prefix> : sets the prefix for the docker services which allows to launch multiple instances of containers.
+      # still need to change the <prefix> name for each instance somehow. but as planning to run this command as a response to 
+      # a request to the webserver or something so this can actually be dynamically set using some logic.
+
+#http://localhost:8080/vnc.html
+#
+#version: "3"
+#
+services:
+ openrave:
+   # build: .
+   image: openrave:working
+   privileged: true
+   tty: true
+   network_mode: "host"
+   environment:
+     - DISPLAY=${DISPLAY}
+     - NVIDIA_DISABLE_REQUIRE=1
+     - NVIDIA_VISIBLE_DEVICES=all
+     - NVIDIA_DRIVER_CAPABILITIES=all
+   # user: 1000:1000    
+   volumes:
+     - /tmp/.X11-unix:/tmp/.X11-unix
+     - ${HOME}/.Xauthority:/root/.Xauthority
+     - ../../LearningRCR/:/workspaces/LearningRCR/
+
+   runtime: nvidia
+   deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: 1
+             capabilities: [gpu]

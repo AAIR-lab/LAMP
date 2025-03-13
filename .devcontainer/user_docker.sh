@@ -1,0 +1,1 @@
+export USER_UID=$(id -u) && export USER_GID=$(id -g) && docker build -t $2 --build-arg USERNAME --build-arg USER_GID --build-arg USER_UID --build-arg IMAGENAME=$1 .

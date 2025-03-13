@@ -1,0 +1,334 @@
+{
+    "Keva": {
+        "general": {
+            "robot": "MagicGripper",
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"]
+        },
+        "problems": {
+            "env1":{
+                "plank_count": 1,
+                "axis": "x",
+                "reference_structure_name": "pi_tower"
+            },
+            
+            "env2":{
+                "plank_count": 1,
+                "axis": "y",
+                "reference_structure_name": "pi_tower",
+                "set_y_flag": true
+            },
+            
+            "env3":{
+                "plank_count": 2,
+                "axis": "x",
+                "planks_in_init_state": 1,
+                "reference_structure_name": "pi_tower"
+            },
+            
+            "env4":{
+                "plank_count": 3,
+                "axis": "x",
+                "planks_in_init_state": 2,
+                "reference_structure_name": "pi_tower"
+            },
+            
+            "env5":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1
+            },
+            
+            "env6":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1
+            },
+            
+            "env7":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2
+            },
+            
+            "env8":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2
+            },
+            
+            "env11":{
+                "plank_count": 1,
+                "axis": "x",
+                "reference_structure_name": "pi_tower",
+                "complete_random": true
+            },
+            
+            "env12":{
+                "plank_count": 1,
+                "axis": "y",
+                "reference_structure_name": "pi_tower",
+                "set_y_flag": true,
+                "complete_random": true
+            },
+            
+            "env13":{
+                "plank_count": 2,
+                "axis": "x",
+                "planks_in_init_state": 1,
+                "reference_structure_name": "pi_tower",
+                "complete_random": true
+            },
+            
+            "env14":{
+                "plank_count": 3,
+                "axis": "x",
+                "planks_in_init_state": 2,
+                "reference_structure_name": "pi_tower",
+                "complete_random": true
+            },
+            
+            "env15":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1,
+                "complete_random": true
+            },
+            
+            "env16":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1,
+                "complete_random": true
+            },
+            
+            "env17":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2,
+                "complete_random": true
+            },
+            
+            "env18":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2,
+                "complete_random": true
+            }
+        }
+    },
+
+    "CafeWorld": {
+        "general": {
+            "robot": "Fetch",
+            "env_list": ["env5", "env6", "env7", "env8"],
+            "plank_count": 1
+        },
+        "problems": {
+            "env1":{
+                "grasp_number": 0,
+                "quadrant_number": 0
+            },
+            
+            "env2":{
+                "grasp_number": 1,
+                "quadrant_number": 1
+            },
+            
+            "env3":{
+                "grasp_number": 2,
+                "quadrant_number": 2
+            },
+            
+            "env4":{
+                "grasp_number": 3,
+                "quadrant_number": 3
+            },
+            
+            "env5":{
+                "grasp_number": 0,
+                "quadrant_number": 0,
+                "R": true
+            },
+            
+            "env6":{
+                "grasp_number": 1,
+                "quadrant_number": 1,
+                "R": true
+            },
+            
+            "env7":{
+                "grasp_number": 2,
+                "quadrant_number": 2,
+                "R": true
+            },
+            
+            "env8":{
+                "grasp_number": 3,
+                "quadrant_number": 3,
+                "R": true
+            }
+        }
+    },
+
+    "Packing": {
+        "general": {
+            "robot": "MagneticGripper",
+            "env_list": ["env1", "env2"],
+            "plank_count": 1
+        },
+        "problems": {
+            "env1":{
+
+            },
+            
+            "env2":{
+                "R": true
+            }
+        }
+    },
+
+    "Jenga": {
+        "general": {
+            "robot": "Fetch",
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"]
+        },
+        "problems": {
+            "env1":{
+                "plank_count": 1,
+                "axis": "x",
+                "reference_structure_name": "pi_tower"
+            },
+            
+            "env2":{
+                "plank_count": 1,
+                "axis": "y",
+                "reference_structure_name": "pi_tower",
+                "set_y_flag": true
+            },
+            
+            "env3":{
+                "plank_count": 2,
+                "axis": "x",
+                "planks_in_init_state": 1,
+                "reference_structure_name": "pi_tower"
+            },
+            
+            "env4":{
+                "plank_count": 3,
+                "axis": "x",
+                "planks_in_init_state": 2,
+                "reference_structure_name": "pi_tower"
+            },
+            
+            "env5":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1
+            },
+            
+            "env6":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1
+            },
+            
+            "env7":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2
+            },
+            
+            "env8":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2
+            },
+            
+            "env11":{
+                "plank_count": 1,
+                "axis": "x",
+                "reference_structure_name": "pi_tower",
+                "complete_random": true
+            },
+            
+            "env12":{
+                "plank_count": 1,
+                "axis": "y",
+                "reference_structure_name": "pi_tower",
+                "set_y_flag": true,
+                "complete_random": true
+            },
+            
+            "env13":{
+                "plank_count": 2,
+                "axis": "x",
+                "planks_in_init_state": 1,
+                "reference_structure_name": "pi_tower",
+                "complete_random": true
+            },
+            
+            "env14":{
+                "plank_count": 3,
+                "axis": "x",
+                "planks_in_init_state": 2,
+                "reference_structure_name": "pi_tower",
+                "complete_random": true
+            },
+            
+            "env15":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1,
+                "complete_random": true
+            },
+            
+            "env16":{
+                "plank_count": 2,
+                "axis": "z",
+                "planks_in_init_state": 1,
+                "complete_random": true
+            },
+            
+            "env17":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2,
+                "complete_random": true
+            },
+            
+            "env18":{
+                "plank_count": 3,
+                "axis": "y",
+                "planks_in_init_state": 2,
+                "complete_random": true
+            }
+        }
+    },
+
+    "DinnerTable": {
+        "general": {
+            "robot": "Fetch",
+            "env_list": ["env1", "env2","env3", "env4"],
+            "plank_count": 1
+        },
+        "problems": {
+            "env1": {
+                "object_list": ["bowl"]
+            },
+            
+            "env2": {
+                "object_list": ["glass"]
+            },
+
+            "env3": {
+                "object_list": ["bowl"],
+                "R": true
+            },
+            
+            "env4": {
+                "object_list": ["glass"],
+                "R": true
+            }
+        }
+    }
+}

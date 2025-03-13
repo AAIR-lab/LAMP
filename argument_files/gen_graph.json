@@ -1,0 +1,205 @@
+{
+    "Keva":{
+        "general":{
+            "env_list": ["env1","env2","env3","env4","env5","env6","env7","env8","env11","env12","env13","env14","env15","env16","env17","env18"],
+            "model_num": 1,
+            "mp_flag": false,
+            "planner": "KP",
+            "k_plans": 1000,
+            "total_demo_count": 160
+        },
+
+        "problems":{
+            "pi_tower": {
+                "plank_count": 9,
+                "axis": "x"
+            },
+
+            "tripple_pi": {
+                "plank_count": 9,
+                "axis": "x"
+            },
+            
+            "flat_tower": {
+                "plank_count": 24,
+                "axis": "y"
+            }, 
+
+            "2d_house": {
+                "plank_count": 6,
+                "axis": "y"
+            }, 
+
+            "double_pi": {
+                "plank_count": 6,
+                "axis": "x"
+            },
+
+            "keva_3_pi": {
+                "plank_count": 9,
+                "axis": "x"
+            },
+
+            "flat_3_tower": {
+                "plank_count": 12,
+                "axis": "y"
+            },
+
+            "fort_curricullum":{
+                "plank_count": 6,
+                "axis": "y"
+            },
+
+            "unseen_1": {
+                "plank_count": 3,
+                "axis": "x"
+            },
+
+            "stonehenge": {
+                "plank_count": 18,
+                "axis": "x"
+            },
+
+            "keva_three_tower": {
+                "plank_count": 24,
+                "axis": "y"
+            },
+
+            "2_pi": {
+                "plank_count": 6,
+                "axis": "x"
+            },
+
+            "twin_stacked_pi":{
+                "plank_count":30,
+                "axis": "x"
+            }
+        
+        }
+    },
+
+    "CafeWorld":{
+        "general":{
+            "env_list": ["env1","env2","env3","env4","env5","env6","env7","env8"],
+            "model_num": 1,
+            "mp_flag": false,
+            "planner": "KP",
+            "k_plans": 1,
+            "test_structure": "can_surface",
+            "total_demo_count": 200
+        },
+        "problems":{
+            "can_surface": {
+                "plank_count": 2
+            }
+        }
+    },
+
+    "Packing":{
+        "general":{
+            "env_list": ["env1","env2"],
+            "model_num": 0,
+            "mp_flag": false,
+            "planner": "KP",
+            "k_plans": 1,
+            "test_structure": "can_surface",
+            "total_demo_count": 200
+        },
+        "problems":{
+            "can_surface":{
+                "plank_count": 1
+            }
+        }
+    },
+
+    "DinnerTable":{
+        "general":{
+            "env_list": ["env1","env2","env3", "env4"],
+            "model_num": 0,
+            "mp_flag": false,
+            "planner": "FD",
+            "k_plans": 1,
+            "test_structure": "can_surface",
+            "total_demo_count": 200
+        },
+        "problems":{
+            "can_surface": {
+                "plank_count": 2
+            }
+        }
+    },
+
+    "Jenga":{
+        "general":{
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"],
+            "total_demo_count": 160,
+            "model_num": 1,
+            "mp_flag": false,
+            "planner": "KP",
+            "k_plans": 1000
+        },
+
+        "problems":{
+            "pi_tower": {
+                "plank_count": 9,
+                "axis": "x"
+            },
+
+            "tripple_pi": {
+                "plank_count": 6,
+                "axis": "x"
+            },
+            
+            "flat_tower": {
+                "plank_count": 8,
+                "axis": "y"
+            }, 
+
+            "double_pi": {
+                "plank_count": 6,
+                "axis": "x"
+            },
+
+            "keva_3_pi": {
+                "plank_count": 9,
+                "axis": "x"
+            },
+
+            "flat_3_tower": {
+                "plank_count": 16,
+                "axis": "y"
+            },
+
+            "unseen_1": {
+                "plank_count": 3,
+                "axis": "x"
+            },
+
+            "keva_24_plank_tower_structure": {
+                "plank_count": 8,
+                "axis": "y"
+            },
+
+            "stonehenge": {
+                "plank_count": 18,
+                "axis": "x"
+            },
+
+            "three_tower": {
+                "plank_count": 24,
+                "axis": "y"
+            },
+
+            "three_tower_dummy": {
+                "plank_count": 6,
+                "axis": "y"
+            },
+
+            "three_tower_12": {
+                "plank_count": 12,
+                "axis": "y"
+            }
+        
+        }
+    }
+}

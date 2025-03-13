@@ -1,0 +1,51 @@
+{
+    "Keva": {
+        "general": {
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"],
+             "total_demo_count": 160,
+             "traj_per_env": 1.0
+        },
+        "problems": {
+        }
+    },
+
+    "CafeWorld": {
+        "general": {
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8"],
+             "total_demo_count": 200,
+             "traj_per_env": 0.125
+        },
+        "problems": {
+        }
+    },
+
+    "Packing": {
+        "general": {
+            "env_list": ["env1","env2"],
+             "total_demo_count": 200,
+             "traj_per_env": 0.4
+        },
+        "problems": {
+        }
+    },
+
+    "Jenga": {
+        "general": {
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"],
+             "total_demo_count": 160,
+             "traj_per_env": 1.0
+        },
+        "problems": {
+        }
+    },
+
+    "DinnerTable": {
+        "general": {
+            "env_list": ["env1", "env2","env3", "env4"],
+             "total_demo_count": 400,
+             "traj_per_env": 0.5
+        },
+        "problems": {
+        }
+    }
+}
