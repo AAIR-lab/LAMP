@@ -20,8 +20,8 @@ class environment():
         # self.env.Load('empty_env.dae')
         if env_name is not None:
             if interactive:
-                # self.env.Load('/workspaces/OLAMP/Environments/Keva/plank_relation_structures/{}.dae'.format(env_name[0]))
-                self.env.Load('/workspaces/OLAMP/Environments/Jenga/reference_structure/{}.dae'.format(env_name[0]))
+                # self.env.Load('/workspaces/LAMP/Environments/Keva/plank_relation_structures/{}.dae'.format(env_name[0]))
+                self.env.Load('/workspaces/LAMP/Environments/Jenga/reference_structure/{}.dae'.format(env_name[0]))
             else:
                 self.env.Load('plank_relation_structures/{}.dae'.format(env_name[0]))
 
@@ -162,7 +162,7 @@ class environment():
         return np.linalg.pinv(transform1).dot(transform2)
         
     def load_plank(self):
-        self.env.Load("/workspaces/OLAMP/Environments/Jenga/objects/jenga.dae")
+        self.env.Load("/workspaces/LAMP/Environments/Jenga/objects/jenga.dae")
         plank = self.env.GetKinBody('SketchUp')
         plank.SetName('plank{}'.format(len(self.plank_list)+1))
         self.plank_list.append(plank)

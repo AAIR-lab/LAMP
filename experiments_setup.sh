@@ -7,8 +7,7 @@ do
 done 
 
 #cloning data directory
-
-path="$(pwd)"
+path="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 log_folder=$domain"_logs"
 domain_model_folder=$domain"_model_files"
 

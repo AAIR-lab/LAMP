@@ -16,7 +16,7 @@ path="$(pwd)"
 for i in $(seq 1 1 $number)
 do  
     env_number=$(($start + $i))
-    docker run -dit --name env$env_number --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "rm /workspaces/OLAMP/Data/$domain/misc/env$env_number/*" 
+    docker run -dit --name env$env_number --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "rm /workspaces/LAMP/Data/$domain/misc/env$env_number/*" 
 done
 sleep 2
 docker container prune -f

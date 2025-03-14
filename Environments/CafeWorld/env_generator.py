@@ -22,7 +22,7 @@ class environment():
         # self.env.Load('empty_env.dae')
         if env_name is not None:
             if interactive:
-                self.env.Load('/workspaces/OLAMP/Environments/CafeWorld/reference_structure/{}.dae'.format(env_name[0]))
+                self.env.Load('/workspaces/LAMP/Environments/CafeWorld/reference_structure/{}.dae'.format(env_name[0]))
             else:
                 self.env.Load('plank_relation_structures/{}.dae'.format(env_name[0]))
 
@@ -145,9 +145,9 @@ class environment():
 
         else:
             if file_num is not None:
-                file_name = '/workspaces/OLAMP/Environments/CafeWorld/env/env{}.dae'.format(file_num)
+                file_name = '/workspaces/LAMP/Environments/CafeWorld/env/env{}.dae'.format(file_num)
             else:
-                file_name = '/workspaces/OLAMP/Environments/CafeWorld/env/{}.dae'.format(self.env_name)
+                file_name = '/workspaces/LAMP/Environments/CafeWorld/env/{}.dae'.format(self.env_name)
 
             with open(file_name,"wb") as f:
                 self.env.Save(f)
@@ -193,7 +193,7 @@ class environment():
             obj.SetName("plank{}".format(i+1))
         
     def load_plank(self):
-        self.env.Load("/workspaces/OLAMP/Environments/Keva/objects/keva.dae")
+        self.env.Load("/workspaces/LAMP/Environments/Keva/objects/keva.dae")
         plank = self.env.GetKinBody('SketchUp')
         plank.SetName('plank{}'.format(len(self.plank_list)+1))
         self.plank_list.append(plank)

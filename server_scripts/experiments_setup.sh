@@ -12,6 +12,6 @@ path="$(pwd)"
 log_folder=$domain"_logs"
 domain_model_folder=$domain"_model_files"
 
-cp -rf $path/OLAMP/Data/$domain $path/
+cp -rf $path/LAMP/Data/$domain $path/
 mkdir -p $path/$log_folder
 mkdir -p $path/$domain_model_folder

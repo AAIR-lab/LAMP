@@ -2,7 +2,7 @@ from openravepy import *
 import numpy as np 
 import os 
 
-os.chdir("/home/naman/OLAMP/Environments/KevaBig/reference_structure/")
+os.chdir("/home/naman/LAMP/Environments/KevaBig/reference_structure/")
 
 
 def spawn_plank(env,plank_name,t):

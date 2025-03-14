@@ -51,7 +51,7 @@ do
         echo "Learning RCRs for Seed: "
         echo "----------- SEED : $seed -------------"
         command="python gen_rom.py -d $domain --seed $seed -c $t"
-        docker run --name env --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
+        docker run --name env --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
         wait
 
         docker stop env
@@ -59,7 +59,7 @@ do
 
         total_demo_count=$(expr $t*$pool_size | bc)
         command="python gen_graph.py -d $domain --seed $seed -t $problem --total_demo_count $total_demo_count"
-        docker run --name env --mount "type=bind,src=$path/OLAMP,dst=/workspaces/OLAMP" -w /workspaces/OLAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
+        docker run --name env --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" -w /workspaces/LAMP openrave:working /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command" &
         wait
         
         docker stop env
