@@ -14,14 +14,9 @@ if [[ -z "$name" ]];then
     name=1
 fi
 
-SOURCE="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-
 log_folder=$domain"_logs"
-path="$(pwd)"
+path="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 domain_model_folder=$domain"_model_files"
-
-bash $path/LAMP/experiments_setup.sh -d $domain
-wait
 
 array=()
 if [[ -z "$seed" ]]; then
@@ -58,14 +53,14 @@ do
         seed2=0
         seed_model_folder="seed_"$seed"_order_"$seed2
 
-        bash -c "cp -r $SOURCE/$domain/misc/$t""_$seed""_*.p $SOURCE/LAMP/Data/$domain/misc/ && echo $t files added"
+        bash -c "cp -r $path/$domain/misc/$t""_$seed""_*.p $path/LAMP/Data/$domain/misc/ && echo $t files added"
         wait
 
         echo "different order seed = $seed2"
         bash -c "python $path/LAMP/timed_experiment.py -n $name -r $robot --domain $domain --problem_num $problem_num --seed $seed --total_demo_count $t --seed2 $seed2"
         wait
 
-        bash -c "mkdir -p $SOURCE/$domain_model_folder/$seed_model_folder && mv $SOURCE/LAMP/Data/$domain/misc/$t""_$seed""_* $SOURCE/$domain_model_folder/$seed_model_folder/ && echo $t files moved"
+        bash -c "mkdir -p $path/$domain_model_folder/$seed_model_folder && mv $path/LAMP/Data/$domain/misc/$t""_$seed""_* $path/$domain_model_folder/$seed_model_folder/ && echo $t files moved"
         wait
     done
 done
