@@ -176,7 +176,7 @@ RUN apt-get update
 RUN apt-get install -y xauth
 RUN apt-get install -y xorg openbox htop openssh-client
 
-RUN cd / && mkdir -p /workspaces && cd /workspaces/ \
+RUN cd / && mkdir -p /workspaces && cd /workspaces/ && \
     git clone https://github.com/AAIR-Lab/LAMP.git && \
     cd LAMP && bash setup_script.sh
 
