@@ -25,7 +25,7 @@ if [[ -z "$seed" ]]; then
         array+=($i)
     done
 else
-    IFS=',' read -r -a array <<< "$seed"
+    read -r -a array <<< "$seed"
 fi
 
 echo "name = env$name"
@@ -39,7 +39,7 @@ if [[ -z "$total_demo_count" ]]; then
     declare -A total_demo_count_dict=( ["Keva"]=160 ["CafeWorld"]=200 ["Packing"]=200 )
     total_demo_count="${total_demo_count_dict[$domain]}"
 fi
-IFS=',' read -r -a array3 <<< "$total_demo_count"
+read -r -a array3 <<< "$total_demo_count"
 
 for t in "${array3[@]}"
 do
@@ -53,14 +53,14 @@ do
         seed2=0
         seed_model_folder="seed_"$seed"_order_"$seed2
 
-        bash -c "cp -r $path/$domain/misc/$t""_$seed""_*.p $path/LAMP/Data/$domain/misc/ && echo $t files added"
+        bash -c "cp /workspaces/data/Data/$domain/misc/$t""_$seed""_*.p $path/LAMP/Data/$domain/misc/ && echo $t files added"
         wait
 
         echo "different order seed = $seed2"
         bash -c "python $path/LAMP/timed_experiment.py -n $name -r $robot --domain $domain --problem_num $problem_num --seed $seed --total_demo_count $t --seed2 $seed2"
         wait
 
-        bash -c "mkdir -p $path/$domain_model_folder/$seed_model_folder && mv $path/LAMP/Data/$domain/misc/$t""_$seed""_* $path/$domain_model_folder/$seed_model_folder/ && echo $t files moved"
+        bash -c "rm $path/LAMP/Data/$domain/misc/$t""_$seed""_* && echo $t files deleted"
         wait
     done
 done
