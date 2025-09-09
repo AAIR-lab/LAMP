@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Robot name = "gripper">
+    <KinBody>
+
+        <Body name = "base" type="dynamic">
+            <Translation> 0.0 0.0 0.0 </Translation>
+            <Geom type = "box">
+                <Translation> 0.0 0 0 </Translation>
+                <Extents> 0.0125 0.0125 0.05584</Extents> 
+                <DiffuseColor> 1 0 0 </DiffuseColor>
+            </Geom>
+        </Body>
+
+    </KinBody>
+
+    <Manipulator name = "arm">
+        <base> base </base>
+        <effector>base</effector>
+    </Manipulator>
+
+</Robot>

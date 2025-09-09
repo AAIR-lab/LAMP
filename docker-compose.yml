@@ -1,0 +1,28 @@
+services:
+ container:
+   # build: .
+   image: lamp:latest
+   privileged: true
+   tty: true
+   network_mode: "host"
+   environment:
+     - DISPLAY=${DISPLAY}
+     - NVIDIA_DISABLE_REQUIRE=1
+     - NVIDIA_VISIBLE_DEVICES=all
+     - NVIDIA_DRIVER_CAPABILITIES=all
+   # user: 1000:1000    
+   volumes:
+     - /tmp/.X11-unix:/tmp/.X11-unix
+     - ${HOME}/.Xauthority:/root/.Xauthority
+     - ${PWD}:/workspaces/LAMP
+    
+   working_dir: /workspaces/LAMP/
+
+   runtime: nvidia
+   deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: 1
+             capabilities: [gpu]

@@ -1,0 +1,27 @@
+.idea*
+# .vscode*
+*.pyc
+Images/*
+*.csv
+*.pt
+./logs/*
+./Model/*
+*.png
+*/*.pyc
+*.dot
+Data/*
+Data*
+sas_plan
+FD
+FF
+sas_plan*
+output*
+output_sas
+FD.zip
+Domains/*/*.pddl*
+Domains/*/*/*.p
+Domains/*/*.txt
+solved_plans
+Planners*
+*.tar.gz
+*/__pycache__*

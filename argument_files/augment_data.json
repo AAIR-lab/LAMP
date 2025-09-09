@@ -1,0 +1,41 @@
+{
+    "Keva": {
+        "general": {
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"]
+        },
+        "problems": {
+        }
+    },
+
+    "CafeWorld": {
+        "general": {
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8"]
+        },
+        "problems": {
+        }
+    },
+
+    "Packing": {
+        "general": {
+            "env_list": ["env1", "env2"]
+        },
+        "problems": {
+        }
+    },
+
+    "Jenga": {
+        "general": {
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"]
+        },
+        "problems": {
+        }
+    },
+
+    "DinnerTable": {
+        "general": {
+            "env_list": ["env1", "env2","env3", "env4"]
+        },
+        "problems": {
+        }
+    }
+}

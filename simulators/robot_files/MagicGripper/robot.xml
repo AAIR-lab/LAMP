@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Robot name = "gripper">
+    <KinBody>
+
+        <Body name = "base" type="dynamic">
+            <Translation> 0.0 0.0 0.0 </Translation>
+            <Geom type = "box">
+                <Translation> 0.0 0 0 </Translation>
+                <Extents> 0.0125 0.0125 0.05584 </Extents> 
+                <DiffuseColor> 1 0 0 </DiffuseColor>
+            </Geom>
+        </Body>
+
+        <Body name = "arm_base" type = "dynamic">
+            <offsetfrom>base</offsetfrom>
+            <Translation> 0 0 0.06834  </Translation>
+            <Geom type = "box">
+                <Translation> 0 0 0 </Translation>
+                <Extents>  0.04156 0.0125 0.0125</Extents>
+                <DiffuseColor> 1 0 0 </DiffuseColor>
+            </Geom>
+        </Body>
+
+        <Body name = "lfinger" type = "dyamic">
+            <offsetfrom>arm_base</offsetfrom>
+            <Translation> 0.02906 0 0.03958</Translation>
+            <Geom type = "box">
+                <Translation> 0 0 0 </Translation>
+                <Extents>0.0125 0.0125 0.02708 </Extents>
+                <DiffuseColor> 1 0 0 </DiffuseColor>
+            </Geom>
+        </Body>
+
+        <Body name = "rfinger" type = "dyamic">
+            <offsetfrom>arm_base</offsetfrom>
+            <Translation> -0.02906 0  0.03958</Translation>
+            <Geom type = "box">
+                <Translation> 0 0 0 </Translation>
+                <Extents> 0.0125 0.0125 0.02708</Extents>
+                <DiffuseColor> 1 0 0 </DiffuseColor>
+            </Geom>
+        </Body>
+
+        <adjacent> base arm_base </adjacent>
+        <adjacent> arm_base lfinger </adjacent>
+        <adjacent> arm_base rfinger </adjacent> 
+
+    </KinBody>
+
+    <Manipulator name = "arm">
+        <base> base </base>
+        <effector>arm_base</effector>
+    </Manipulator>
+
+</Robot>
