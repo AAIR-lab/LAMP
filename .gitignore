@@ -10,7 +10,6 @@ Images/*
 */*.pyc
 *.dot
 Data/*
-Data*
 sas_plan
 FD
 FF
