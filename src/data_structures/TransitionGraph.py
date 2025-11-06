@@ -1,7 +1,6 @@
 import os
 import sys
 from networkx import DiGraph
-import cPickle
 import argparse
 import copy
 
@@ -23,6 +22,8 @@ from Config import Config
 from src.data_structures.PDDLTrajectory import PDDLTrajectory
 from src.utilities.TrajAbstracter import TrajAbstracter
 import useful_functions
+
+import pickle
 
 class TransitionGraph(DiGraph):
     file_prefix = ""
@@ -49,8 +50,8 @@ class TransitionGraph(DiGraph):
         data_dict["added_relations"] = added_relations
         data_dict["transitions_used"] = transitions_used
 
-        with open(Config.DATA_MISC_DIR+name+".p","wb") as f:
-            cPickle.dump(data_dict,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+name+Config.PICKLE_SUFFIX,"wb") as f:
+            pickle.dump(data_dict,f,protocol=Config.PICKLE_PROTOCOL )
 
     @staticmethod
     def get_local_added_relations(local_added_relations, prev_state, next_state):
@@ -67,12 +68,12 @@ class TransitionGraph(DiGraph):
         TransitionGraph.force_generation = force_generation
 
     @staticmethod
-    def load_graph_data(prefix=None,name="transition_graph.p"):
+    def load_graph_data(prefix=None,name="transition_graph"):
         if prefix is None:
             prefix = TransitionGraph.file_prefix
         
-        with open(Config.DATA_MISC_DIR+prefix+name) as f:
-            graph_data = cPickle.load(f)
+        with open(Config.DATA_MISC_DIR+prefix+name+Config.PICKLE_SUFFIX,"rb") as f:
+            graph_data = useful_functions.load_pickle(f)
             f.close()
         
         TransitionGraph.graph = graph_data["graph"]
@@ -80,8 +81,8 @@ class TransitionGraph(DiGraph):
         TransitionGraph.transitions_used = graph_data["transitions_used"] 
  
     @staticmethod
-    def get_graph(name="transition_graph.p"):
-        exists = os.path.isfile(Config.DATA_MISC_DIR+TransitionGraph.file_prefix+name)
+    def get_graph(name="transition_graph"):
+        exists = os.path.isfile(Config.DATA_MISC_DIR+TransitionGraph.file_prefix+name+Config.PICKLE_SUFFIX)
         if not exists or TransitionGraph.force_generation:
             TransitionGraph.generate_graph()
         else:

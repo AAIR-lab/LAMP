@@ -1,5 +1,9 @@
 import math
 import numpy as np
+import sys
+
+if int(sys.version.split(".")[0]) > 2:
+    import torch
 
 DEFAULT_START = np.array([-0.5,-0.5,-0.5,-math.radians(180),-math.radians(180),-math.radians(180)])
 DEFAULT_END = np.array([0.5,0.5,0.5,math.radians(180),math.radians(180),math.radians(180)])
@@ -8,7 +12,6 @@ DEFAULT_BIN_COUNT = np.array([224,224,224,11,11,11])
 class Discretizer(object):
 
     def __init__(self,env_start=DEFAULT_START,env_end = DEFAULT_END,world_n_bins=DEFAULT_BIN_COUNT ):
-        # self.n_dofs = self.robot.get_num_active_dofs()
         env_ranges = env_end-env_start
         self.env_start = env_start
         self.env_end = env_end
@@ -16,7 +19,6 @@ class Discretizer(object):
         self.world_n_bins = world_n_bins
         self.env_ranges = env_ranges
         self.relational_n_bins = []
-        # self.relational_n_bins.extend(((self.world_n_bins[:3]-2)*2*math.sqrt(2))+2)
         self.relational_n_bins.extend(((self.world_n_bins[:3])*2*math.sqrt(2)))
         self.relational_n_bins.extend(self.world_n_bins[3:])
         for i in range(len(self.relational_n_bins)):
@@ -27,9 +29,6 @@ class Discretizer(object):
     def __create_bins(self):
         world_bins = {}
         relational_bins = {}
-        # llimits = self.robot.get_dof_lower_limits()
-        # ulimits = self.robot.get_dof_upper_limits()
-
         llimits = self.env_start
         ulimits = self.env_end
         dof_range = ulimits - llimits
@@ -43,78 +42,51 @@ class Discretizer(object):
         world_bins[i] = {}
         start = llimits[i]
         bin_step = dof_range[i] / (self.world_n_bins[i])
-        # bin_step = dof_range[i] / (self.world_n_bins[i]-2)
-        # world_bins[i]["bin_start"] = [-np.inf]
         world_bins[i]["bin_start"] = []
-        # world_bins[i]["bin_end"] = [start]
         world_bins[i]["bin_end"] = []
-        # for j in range((self.world_n_bins[i]-2)):
         for j in range((self.world_n_bins[i])):
             world_bins[i]["bin_start"].append(start)
             world_bins[i]["bin_end"].append(start + bin_step)
             start += bin_step
-        # world_bins[i]["bin_start"].append(start)
-        # world_bins[i]["bin_end"].append(np.inf)
 
         relational_bins[i] = {}
         bin_step = relational_dof_range[i] / (self.relational_n_bins[i]-1)
         start = relational_llimits[i]-bin_step/2.0
         relational_bins[i]["bin_start"] = []
-        # relational_bins[i]["bin_start"] = [-np.inf]
         relational_bins[i]["bin_end"] = []
-        # relational_bins[i]["bin_end"] = [start]
-        # for j in range(self.relational_n_bins[i]-2):
         for j in range(self.relational_n_bins[i]):
             relational_bins[i]["bin_start"].append(start)
             relational_bins[i]["bin_end"].append(start + bin_step)
             start += bin_step
-        # relational_bins[i]["bin_start"].append(start)
-        # relational_bins[i]["bin_end"].append(np.inf)
         
         # for y-dof
         i = 1
         world_bins[i] = {}
-        # world_bins[i]["bin_start"] = [np.inf]
         world_bins[i]["bin_start"] = []
-        # world_bins[i]["bin_end"] = [start-bin_step]
         world_bins[i]["bin_end"] = []
         start = ulimits[i]
-        # bin_step = dof_range[i] / (self.world_n_bins[i]-2)
         bin_step = dof_range[i] / (self.world_n_bins[i])
-        # for j in range((self.world_n_bins[i]-2)):
         for j in range((self.world_n_bins[i])):
             world_bins[i]["bin_start"].append(start - bin_step)
             world_bins[i]["bin_end"].append(start)
             start -= bin_step
-        # world_bins[i]["bin_start"].append(start)
-        # world_bins[i]["bin_end"].append(-np.inf)
 
         relational_bins[i] = {}
         bin_step = relational_dof_range[i] / (self.relational_n_bins[i]-1)
         start = relational_ulimits[i]+bin_step/2.0
-        # relational_bins[i]["bin_start"] = [np.inf]
         relational_bins[i]["bin_start"] = []
-        # relational_bins[i]["bin_end"] = [start-bin_step]
         relational_bins[i]["bin_end"] = []
-        # for j in range(self.relational_n_bins[i]-2):
         for j in range(self.relational_n_bins[i]):
             relational_bins[i]["bin_start"].append(start - bin_step)
             relational_bins[i]["bin_end"].append(start)
             start -= bin_step
-        # relational_bins[i]["bin_start"].append(start)
-        # relational_bins[i]["bin_end"].append(-np.inf)
     
         #for z-dof
         i = 2
         world_bins[i] = {}
-        start = llimits[i]
-        # bin_step = dof_range[i] / (self.world_n_bins[i]-2)
         bin_step = dof_range[i] / (self.world_n_bins[i])
         world_bins[i]["bin_start"] = []
-        # world_bins[i]["bin_start"] = [-np.inf]
         world_bins[i]["bin_end"] = []
-        # world_bins[i]["bin_end"] = [start]
-        # for j in range((self.world_n_bins[i]-2)):
         for j in range((self.world_n_bins[i])):
             world_bins[i]["bin_start"].append(start)
             world_bins[i]["bin_end"].append(start + bin_step)
@@ -123,37 +95,26 @@ class Discretizer(object):
         world_bins[i]["bin_end"].append(np.inf)
 
         relational_bins[i] = {}
-        # relational_bins[i]["bin_start"] = [-np.inf]
-        # relational_bins[i]["bin_end"] = [start]
         bin_step = relational_dof_range[i] / (self.relational_n_bins[i]-1)
         start = relational_llimits[i]-bin_step/2.0
         relational_bins[i]["bin_start"] = []
         relational_bins[i]["bin_end"] = []
-        # for j in range(self.relational_n_bins[i]-2):
         for j in range(self.relational_n_bins[i]):
             relational_bins[i]["bin_start"].append(start)
             relational_bins[i]["bin_end"].append(start + bin_step)
             start += bin_step
-        # relational_bins[i]["bin_start"].append(start)
-        # relational_bins[i]["bin_end"].append(np.inf)
 
         #for other dofs
         for i in range(3,len(self.relational_n_bins)):
             world_bins[i] = {}            
-            # bin_step = dof_range[i] / (self.relational_n_bins[i]-3)
             bin_step = dof_range[i] / (self.relational_n_bins[i]-2)
             start = llimits[i]-bin_step
-            # world_bins[i]["bin_start"] = [-np.inf]
-            # world_bins[i]["bin_end"] = [start]
             world_bins[i]["bin_start"] = []
             world_bins[i]["bin_end"] = []
-            # for j in range(self.relational_n_bins[i]-2):
             for j in range(self.relational_n_bins[i]):
                 world_bins[i]['bin_start'].append(start)
                 world_bins[i]['bin_end'].append(start + bin_step)
                 start += bin_step
-            # world_bins[i]["bin_start"].append(start)
-            # world_bins[i]["bin_end"].append(np.inf)
 
             relational_bins[i] = world_bins[i]
 
@@ -182,28 +143,15 @@ class Discretizer(object):
         return dof_values
 
     def get_bin_from_ll(self, dofval, jointIdx, is_relative):        
-        # bins = self.bins[jointIdx]
         bins = self.get_bins(is_relative)[jointIdx]
         if jointIdx>2:
             dofval = round(round(dofval/0.05)*0.05,2)
 
         if jointIdx == 1:
-            # if dofval > bins['bin_start'][1]:
-            #     return 0
-            # if dofval < bins['bin_end'][-2]:
-            #     return len(bins['bin_end'])-1
-
             if dofval > bins['bin_end'][0] or dofval < bins['bin_start'][-1]:
                 return -1
         else:
-            # if dofval < bins['bin_start'][1]:
-            #     return 0
-            # if dofval > bins['bin_end'][-2]:
-            #     return len(bins['bin_end'])-1
-       
             if dofval < bins['bin_start'][0] or dofval > bins['bin_end'][-1]:
-                # if jointIdx > 2:
-                #     print(dofval)
                 return -1
             
         for j in range(len(bins['bin_start'])):
@@ -219,24 +167,10 @@ class Discretizer(object):
                 dofval = round(round(dofval/0.05)*0.05,2)
                 
             if jointIdx == 1:
-                # if dofval > bins['bin_start'][1]:
-                #     pose.append(0)
-                #     continue
-                # if dofval < bins['bin_end'][-2]:
-                #     pose.append(len(bins['bin_end'])-1)
-                #     continue
-
                 if dofval > bins['bin_end'][0] or dofval < bins['bin_start'][-1]:
                     pose.append(-1)
                     continue
-            else:
-                # if dofval < bins['bin_start'][1]:
-                #     pose.append(0)
-                #     continue
-                # if dofval > bins['bin_end'][-2]:
-                #     pose.append(len(bins['bin_end'])-1)
-                #     continue
-           
+            else:           
                 if dofval < bins['bin_start'][0] or dofval > bins['bin_end'][-1]:
                     pose.append(-1)
                     continue
@@ -247,3 +181,39 @@ class Discretizer(object):
                     break
 
         return pose
+
+    def get_discretized_pose_tensor(self, rel_pose_tensor, is_relative=True, device="cpu"):
+        discretized_tensor = torch.zeros(
+            rel_pose_tensor.shape, dtype=torch.int64, device=device
+        )
+
+        for jointIdx in range(rel_pose_tensor.shape[-1]):
+            bins = self.get_bins(is_relative)[jointIdx]
+            dofval = rel_pose_tensor[:,jointIdx]
+            discretized_dof = torch.zeros(
+                dofval.shape, dtype=torch.int64, device=device
+            )
+            discretized_dof[:] = -2
+
+            if jointIdx>2:
+                dofval = torch.round((torch.round(dofval/0.05)*0.05)*10**2)/10**2
+                
+            if jointIdx == 1:
+                bool_tensor = torch.logical_or((dofval > bins['bin_end'][0]), (dofval < bins['bin_start'][-1]))
+            else:
+                bool_tensor = torch.logical_or((dofval < bins['bin_start'][0]), (dofval > bins['bin_end'][-1]))
+            
+            discretized_dof[bool_tensor] = -1
+                
+            for j in range(len(bins['bin_start'])):
+                in_between_bool = torch.logical_and((bins['bin_start'][j] < dofval),(dofval < bins['bin_end'][j]))
+                eq_bool = torch.logical_or((bins['bin_start'][j] == dofval),(dofval == bins['bin_end'][j]))
+                bool_tensor = torch.logical_or(in_between_bool, eq_bool)
+
+                discretized_dof[bool_tensor] = j
+                # break
+            
+            assert -2 not in discretized_dof
+            discretized_tensor[:,jointIdx] = discretized_dof
+
+        return discretized_tensor

@@ -1,12 +1,14 @@
 from Config import Config
 import numpy as np
-import cPickle
 from copy import deepcopy
-from useful_functions import print_set, get_relative_bin_arr_size
+from useful_functions import print_set, get_relative_bin_arr_size, load_pickle
 from itertools import product
 from scipy.ndimage import label
 import os
 from math import ceil
+import sys
+
+import pickle
 
 class RelativeOccupancyMap(object):
     def __init__(self,env_name_list,traj_per_env,total_traj_count,overwrite=False,visualize=False,load_all=False,num_robots=1,process_count=1000000000,prefix=0):
@@ -16,7 +18,7 @@ class RelativeOccupancyMap(object):
         for env in self.env_name_list:
             self.env_num_list.append(int(env[3:]))
         #print(self.env_name_list)
-        self.file_name = "binned_"+env_name_list[0]+"_to_"+env_name_list[-1]+"_data.p"
+        self.file_name = "binned_"+env_name_list[0]+"_to_"+env_name_list[-1]+"_data" + Config.PICKLE_SUFFIX
         self.traj_per_env = traj_per_env        
         self.overwrite = overwrite
         self.rcr_indices_dic = {}
@@ -29,18 +31,17 @@ class RelativeOccupancyMap(object):
         self.total_traj_count = total_traj_count
         self.env_traj_dict = {}
         self.matrix_under_use = None
-        self.threshold_matrix = None
         self.processed_env_count = 0
 
         if self.load_all:
             self.load_all_data()
     
     def load_data(self,env_name):
-        file_name = "binned_"+env_name+"_data.p"
-        data_load = cPickle.load(open(Config.DATA_MISC_DIR+env_name+"/"+file_name))
+        file_name = "binned_"+env_name+"_data" + Config.PICKLE_SUFFIX
+        data_load = load_pickle(open(Config.DATA_MISC_DIR+env_name+"/"+file_name,"rb"))
         data = data_load["binned_env_states"]
 
-        object_list = cPickle.load(open(Config.DATA_MISC_DIR + env_name + "/{}_object_list.p".format(env_name),"rb"))
+        object_list = load_pickle(open(Config.DATA_MISC_DIR + env_name + "/{}_object_list{}".format(env_name,Config.PICKLE_SUFFIX),"rb"))
 
         return data, object_list
 
@@ -100,11 +101,6 @@ class RelativeOccupancyMap(object):
 
             del dic
             del sensor_dim_dict
-
-        if self.threshold_matrix is None:
-            self.threshold_matrix = np.zeros(np.shape(pair_data),dtype=np.float16)
-        
-        self.threshold_matrix = np.maximum(self.threshold_matrix,np.where(data==1.0,pair_data,data))
         
         if self.matrix_under_use is None:
             self.matrix_under_use = np.zeros(np.shape(data))
@@ -226,11 +222,18 @@ class RelativeOccupancyMap(object):
                                         if tuple(index) not in relation_flag_dic:
                                             relation_flag_dic.add(tuple(index))
                                             item_indices = tuple(pos_ind + [0] + sensor_ind)                      
-                                            frequency_map.itemset(item_indices, frequency_map.item(item_indices) + 1)
+                                            if Config.PYTHON_VER_INT == 2:
+                                                frequency_map.itemset(item_indices, frequency_map.item(item_indices) + 1)
+                                            else:
+                                                frequency_map[item_indices] = frequency_map[item_indices] + 1
+                                                
                                             for ai,(start, _) in enumerate(angle_bin_ranges):
                                                 a = start + angles[ai] + 1
-                                                item_indices = tuple(pos_ind + [a] + sensor_ind)                      
-                                                frequency_map.itemset(item_indices, frequency_map.item(item_indices) + 1)
+                                                item_indices = tuple(pos_ind + [a] + sensor_ind)
+                                                if Config.PYTHON_VER_INT == 2:
+                                                    frequency_map.itemset(item_indices, frequency_map.item(item_indices) + 1)
+                                                else:
+                                                    frequency_map[item_indices] = frequency_map[item_indices] + 1
                 
                 del relation_flag_dic
             
@@ -328,18 +331,6 @@ class RelativeOccupancyMap(object):
         
         return dic
     
-    def get_threshold_used(self,bins,angle_bin_ranges):
-        ind_list = []
-        for i, (start,_) in enumerate(angle_bin_ranges):
-            ind_list.append(bins[3+i] + start + 1)
-        
-        threshold_list = []
-        for ind in ind_list:
-            index_tuple = tuple(list(bins[:3]) + [ind] + bins[-Config.SENSOR_COUNT:])
-            threshold_list.append(self.threshold_matrix.item(index_tuple))
-        
-        return min(threshold_list)
-
     def learn_and_store_rcrs(self,dic=None,array_dict=None,prim_name=None,sec_name=None,angle_bin_ranges=[]):
         #print("storing critical regions")
         local_rcr_indices_dic = {}
@@ -368,7 +359,7 @@ class RelativeOccupancyMap(object):
                 new_rcr = []
                 for ind in rcr:
                     [x,y,z] = ind[:3]
-                    pos = [x,y,z]
+                    pos = [int(x),int(y),int(z)]
                     r_list = []
                     p_list = []
                     y_list = []
@@ -380,7 +371,7 @@ class RelativeOccupancyMap(object):
                             for orn_index, orn_list in enumerate(orienation_indices):
                                 start,end = angle_bin_ranges[orn_index]
                                 if start <= val < end:
-                                    orn_list.append(val - start)
+                                    orn_list.append(int(val - start))
                                 
                     if len(r_list) == 0:
                         continue
@@ -472,7 +463,6 @@ class RelativeOccupancyMap(object):
                     key = obj1+"_"+obj2
                     if key not in key_set:
                         key_set.add(key)
-                        self.threshold_matrix = None
                         if key_string_set is None:
                             if obj1 not in self.rcr_indices_dic.keys():
                                 self.rcr_indices_dic[obj1] = {}
@@ -504,9 +494,6 @@ class RelativeOccupancyMap(object):
                                 
                                 break_flag = True
                                 break
-                        
-                        if self.threshold_matrix is not None:
-                            del self.threshold_matrix
                     
                     if break_flag:
                         break
@@ -525,16 +512,16 @@ class RelativeOccupancyMap(object):
                     new_pair_list.append(new_rcr)
                 self.rcr_indices_dic[prim_obj][sec_obj] = new_pair_list
 
-        with open(Config.DATA_MISC_DIR+self.file_prefix+"trajs_used.p","wb") as f:
-            cPickle.dump(self.env_traj_dict,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+self.file_prefix+"trajs_used"+Config.PICKLE_SUFFIX,"wb") as f:
+            pickle.dump(self.env_traj_dict,f,protocol=Config.PICKLE_PROTOCOL )
             f.close()
         
-        with open(Config.DATA_MISC_DIR+self.file_prefix+"og_rcr_indices.p","wb") as f:
-            cPickle.dump(self.rcr_indices_dic,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+self.file_prefix+"og_rcr_indices"+Config.PICKLE_SUFFIX,"wb") as f:
+            pickle.dump(self.rcr_indices_dic,f,protocol=Config.PICKLE_PROTOCOL)
             f.close()
         
-        with open(Config.DATA_MISC_DIR+self.file_prefix+"rcr_indices.p","wb") as f:
-            cPickle.dump(self.rcr_indices_dic,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+self.file_prefix+"rcr_indices"+Config.PICKLE_SUFFIX,"wb") as f:
+            pickle.dump(self.rcr_indices_dic,f,protocol=Config.PICKLE_PROTOCOL )
             f.close()
             
 if __name__ == "__main__":

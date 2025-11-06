@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-while getopts n:r:d:s:T:P:o:S: flag
+while getopts n:d:s:p:T:P: flag
 do
     case "${flag}" in
         n) name=${OPTARG};;
@@ -62,7 +62,7 @@ do
     echo "robot = $robot"
     docker container prune -f  
 
-    for (( j=0; j<$length; j++ )); do
+    for (( j=0; j<$length; j++ ));
     do
         prefix="${prefix_array[j]}"
         seed="${seed_array[j]}"
@@ -71,7 +71,8 @@ do
         seed2=0
         prefix_model_folder="prefix_"$prefix"_order_"$seed2
 
-        command1="cp -r /workspaces/$domain/misc/$t""_$prefix""_*.p /workspaces/LAMP/Data/$domain/misc/ && echo $t files added"
+        command1="cp -r /workspaces/$domain/misc/$t""_$prefix""_*.pkl /workspaces/LAMP/Data/$domain/misc/ && echo $t files added"
+        echo $command1
         docker run --name env$name --mount "type=bind,src=$path/LAMP,dst=/workspaces/LAMP" --mount "type=bind,src=$path/$domain,dst=/workspaces/$domain" -w /workspaces/LAMP lamp /bin/bash -c "source /opt/ros/melodic/setup.bash && source /root/tmp_catkin_ws/devel/setup.bash && $command1"
         docker container prune -f   
 

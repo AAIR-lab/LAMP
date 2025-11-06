@@ -1,7 +1,6 @@
 from time import sleep
 import numpy as np
 import importlib
-import cPickle
 import os
 import sys 
 
@@ -28,6 +27,7 @@ from Object import Object
 import model_gen_utils
 import sim_utils
 import Robots
+from useful_functions import sixd_pose_from_transform, transform_from_sixd_pose 
 
 sim = Simulator()
 class SimClass(Simulator):
@@ -53,9 +53,10 @@ class SimClass(Simulator):
         cc.SetCollisionOptions(sim.CollisionOptions.AllGeometryContacts)
         self.env.SetCollisionChecker(cc)
 
-        self.visualize = visualize        
+        self.viewer = None
+        self.visualize = visualize
         if visualize:
-            self.visualize_sim()
+            self.viewer = self.visualize_sim()
 
     @staticmethod
     def conditional_env_lock(method,*args):
@@ -258,7 +259,7 @@ class SimClass(Simulator):
                 if obj_name.split("_")[SimConfig.OBJ_TYPE_IND] not in SimConfig.ROBOT_TYPES.keys():
                     obj = self.get_obj(obj_name)
                     if obj is not None:
-                        obj.set_transform(sim_utils.transform_from_pose(env_state.object_dict[obj_name]))
+                        obj.set_transform(transform_from_sixd_pose(env_state.object_dict[obj_name]))
                     else:
                         objects_not_found.append(obj_name)
                 else:
@@ -299,7 +300,7 @@ class SimClass(Simulator):
     def show_region(self,region,pT,discretizer,sample_count=100,invert=False):
         for i in range(sample_count):
             rel_pose = discretizer.convert_sample(region[0][:6],is_relative=True)
-            rel_t = sim_utils.transform_from_pose(rel_pose)
+            rel_t = transform_from_sixd_pose(rel_pose)
             if invert:
                 p = pT.dot(rel_t)
             else:
@@ -477,25 +478,27 @@ class SimClass(Simulator):
         if type(traj) != list:
             len_traj = traj.GetNumWaypoints()
 
-            wp = traj.GetWaypoint(0)
-            if len(wp) == 3:
-                self.robot.activate_base_joints()
-            else:
-                self.robot.activate_manip_joints()
-
             for i in range(len_traj):
                 wp = traj.GetWaypoint(i)
+                if len(wp) == 3:
+                    self.robot.activate_base_joints()
+                else:
+                    self.robot.activate_manip_joints()
+                    
                 obj_dic = {}
                 self.robot.set_active_dof_values(wp)
                 for obj in self.objects.values():
                     if obj.get_name() not in SimConfig.BOUND_OBJECT_NAME:
                         if obj != self.robot:
                             name = obj.get_name()
-                            obj_dic[name] = sim_utils.pose_from_transform(obj.get_transform())
+                            obj_dic[name] = sixd_pose_from_transform(obj.get_transform())
                         else:
                             for link in self.robot.robot_type_object_mappings.keys():
+                                name_type = self.robot.robot_type_object_mappings[link].split("_")[SimConfig.OBJ_TYPE_IND]
+                                joints_activation_function = getattr(self.robot,"activate_{}".format(SimConfig.ROBOT_TYPES[name_type]))
+                                joints_activation_function()
                                 name = self.robot.robot_type_object_mappings[link]
-                                obj_dic[name] = [self.robot.get_active_dof_values(),sim_utils.pose_from_transform(self.robot.get_link(link).GetTransform())]
+                                obj_dic[name] = [self.robot.get_active_dof_values(),sixd_pose_from_transform(self.robot.get_link(link).GetTransform())]
 
                 kwargs = {}
 
@@ -526,14 +529,14 @@ class SimClass(Simulator):
             if obj.get_name() not in SimConfig.BOUND_OBJECT_NAME:
                 if obj != self.robot:
                     name = obj.get_name()
-                    obj_dic[name] = sim_utils.pose_from_transform(obj.get_transform())
+                    obj_dic[name] = sixd_pose_from_transform(obj.get_transform())
                 else:
                     for link in self.robot.robot_type_object_mappings.keys():
                         name_type = self.robot.robot_type_object_mappings[link].split("_")[SimConfig.OBJ_TYPE_IND]
                         joints_activation_function = getattr(self.robot,"activate_{}".format(SimConfig.ROBOT_TYPES[name_type]))
                         joints_activation_function()
                         name = self.robot.robot_type_object_mappings[link]
-                        obj_dic[name] = [self.robot.get_active_dof_values(),sim_utils.pose_from_transform(self.robot.get_link(link).GetTransform())]
+                        obj_dic[name] = [self.robot.get_active_dof_values(),sixd_pose_from_transform(self.robot.get_link(link).GetTransform())]
         
         kwargs = {}
 
@@ -565,6 +568,7 @@ class SimClass(Simulator):
 
     def visualize_sim(self):
         self.env.SetViewer("qtcoin")
+        return self.env.GetViewer()
         
     def get_objects(self):
         return self.objects.values() #TODO: make this return ABSTRACT_OBJECTS

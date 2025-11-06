@@ -1,5 +1,5 @@
 import numpy as np
-import cPickle
+import pickle
 import tqdm
 import math
 import os
@@ -14,7 +14,7 @@ Object = Config.get_simulator_module("Object").Object
 model_gen_utils = Config.get_simulator_module("model_gen_utils")
 
 class CafeWorld(object):
-    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data.p",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name=Config.ROBOT_NAME):
+    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name=Config.ROBOT_NAME):
         self.sim_object = SimClass(robot_name=robot_name,
                                    visualize=visualize)
             
@@ -93,6 +93,7 @@ class CafeWorld(object):
         self.added_objects = []
         self.surface = surface
         self.num_robots = num_robots
+        self.data_gen = data_gen
 
         if "problem" not in env_name:
             self.sim_object.change_obj_name("countertop","surface_0")
@@ -100,11 +101,12 @@ class CafeWorld(object):
             for i in range(self.object_count):
                 self.spawn_object()
 
-            table_count = min(2,max(2,self.object_count))
-            # table_count = 1
+            table_count = 2
+            if not data_gen:
+                table_count = 7
             for _ in range(table_count):
                 self.spawn_table()
-
+            
         else:
             self.can_list = [obj for obj in self.sim_object.get_objects() if "can" in str(obj.get_name())]
             self.table_list = [obj for obj in self.sim_object.get_objects() if "surface" in str(obj.get_name())]
@@ -113,9 +115,10 @@ class CafeWorld(object):
         self.trace = []
         self.compute_mp = mp
 
-        self.randomize_env()
+        if not experiment_flag:
+            self.randomize_env()
 
-    def sample_can_countertop(self,object_name,surface_name="surface_0",range=[[-0.43,-0.1],[0.1,0.43]]):
+    def sample_can_countertop(self,object_name,surface_name="surface_0",range=[[-0.175,-0.1],[0.1,0.175]]):
         obj = self.sim_object.get_obj(object_name)
         t_current = obj.get_transform()
         current_grabbed_flag = False
@@ -133,7 +136,7 @@ class CafeWorld(object):
             countertop = self.sim_object.get_obj(surface_name)
             countertop_t = countertop.get_transform()
 
-            t = self.sim_object.matrixFromPose([1,0,0,0,x,y,z])            
+            t = useful_functions.transform_from_sevend_pose([1,0,0,0,x,y,z])            
 
             t = countertop_t.dot(t)
 
@@ -152,7 +155,7 @@ class CafeWorld(object):
 
         return t
     
-    def sample_can_table(self,object_name,surface_name,range=[[-0.43,-0.1],[0.1,0.43]]):
+    def sample_can_table(self,object_name,surface_name,range=[[-0.175,-0.1],[0.1,0.175]]):
         obj = self.sim_object.get_obj(object_name)
         t_current = obj.get_transform()
         current_grabbed_flag = False
@@ -175,9 +178,9 @@ class CafeWorld(object):
 
             grasp_num = np.random.choice(Config.NUM_GRASPS)
             rot_angle = (grasp_num * (2*np.pi) / Config.NUM_GRASPS)
-            rot_z = self.sim_object.matrixFromAxisAngle([0,0,rot_angle])
+            rot_z = useful_functions.rotmat_from_rotvec([0,0,rot_angle])
 
-            t = self.sim_object.matrixFromPose([1,0,0,0,x,y,z])
+            t = useful_functions.transform_from_sevend_pose([1,0,0,0,x,y,z])
             t = table_t.dot(t)
             t = t.dot(rot_z)
 
@@ -209,7 +212,7 @@ class CafeWorld(object):
         x_offset = -diff-countertop_x_dim
         y_offset = 0
 
-        diff_translation_matrix = self.sim_object.matrixFromPose([1,0,0,0,x_offset,y_offset,0])
+        diff_translation_matrix = useful_functions.transform_from_sevend_pose([1,0,0,0,x_offset,y_offset,0])
 
         valid_pose = None
         count = 0
@@ -217,14 +220,14 @@ class CafeWorld(object):
         while valid_pose is None and count < 5:
             rot_angle = (2*np.pi) / Config.NUM_GRASPS
             
-            rot_Z = self.sim_object.matrixFromAxisAngle([0, 0, -np.pi/2])
-            rot_mat = self.sim_object.matrixFromAxisAngle([0,0,rot_angle])
+            rot_Z = useful_functions.rotmat_from_rotvec([0, 0, -np.pi/2])
+            rot_mat = useful_functions.rotmat_from_rotvec([0,0,rot_angle])
             t = np.eye(4)
             t = countertop_t.dot(rot_mat).dot(rot_Z).dot(diff_translation_matrix)
 
             _x = t[0,3]
             _y = t[1,3]
-            _yaw = self.sim_object.axisAngleFromRotationMatrix(t[:3,:3])[-1]
+            _yaw = useful_functions.rotvec_from_rotmat(t[:3,:3])[-1]
             pose = [_x,_y,_yaw]
 
             self.sim_object.robot.set_active_dof_values(pose)
@@ -244,7 +247,7 @@ class CafeWorld(object):
         table = self.sim_object.get_obj(surface_name)
         table_t = table.get_transform()
         table_dims = self.sim_object.get_object_dims(str(table.get_name()))
-        diff_translation_matrix = self.sim_object.matrixFromPose([1,0,0,0,-diff-table_dims[0],0,0])
+        diff_translation_matrix = useful_functions.transform_from_sevend_pose([1,0,0,0,-diff-table_dims[0],0,0])
 
         valid_pose = None
         count = 0
@@ -255,14 +258,14 @@ class CafeWorld(object):
             else:
                 rot_angle = (self.grasp_num * (2*np.pi) / Config.NUM_GRASPS)                
             
-            rot_Z = self.sim_object.matrixFromAxisAngle([0, 0, -np.pi/2])
-            rot_mat = self.sim_object.matrixFromAxisAngle([0,0,rot_angle])
+            rot_Z = useful_functions.rotmat_from_rotvec([0, 0, -np.pi/2])
+            rot_mat = useful_functions.rotmat_from_rotvec([0,0,rot_angle])
             t = np.eye(4)
             t = table_t.dot(rot_mat).dot(rot_Z).dot(diff_translation_matrix)
 
             _x = t[0,3]
             _y = t[1,3]
-            _yaw = self.sim_object.axisAngleFromRotationMatrix(t[:3,:3])[-1]
+            _yaw = useful_functions.rotvec_from_rotmat(t[:3,:3])[-1]
             pose = [_x,_y,_yaw]
 
             self.sim_object.robot.set_active_dof_values(pose)
@@ -307,8 +310,8 @@ class CafeWorld(object):
 
                 z = self.table_h
 
-                t1 = self.sim_object.matrixFromPose([1,0,0,0,x1,y1,z])
-                t2 = self.sim_object.matrixFromPose([1,0,0,0,x2,y2,z])
+                t1 = useful_functions.transform_from_sevend_pose([1,0,0,0,x1,y1,z])
+                t2 = useful_functions.transform_from_sevend_pose([1,0,0,0,x2,y2,z])
 
                 for t in [t1,t2]:
                     table.set_transform(t)
@@ -327,49 +330,32 @@ class CafeWorld(object):
                         
         self.sim_object.robot.activate_manip_joints()
 
-        rot_Z = self.sim_object.matrixFromAxisAngle([0, 0, -np.pi/2])
+        rot_Z = useful_functions.rotmat_from_rotvec([0, 0, -np.pi/2])
         valid_pose = None
         gripper_offset = self.sim_object.robot.grasping_offset[Config.OBJECT_NAME[0]]
         if grasp_num is None:
-            for j in range(Config.NUM_GRASPS):
-                rot_ang = np.random.uniform(low = -np.pi, high = np.pi)
-                obj_T_gripper = self.sim_object.matrixFromPose([1, 0, 0, 0, gripper_offset, 0, self.can_h/2.0])
-                rot_mat = self.sim_object.matrixFromAxisAngle([0, 0, rot_ang])
-
-                wrist_roll_pose = self.sim_object.robot.get_link_transform("wrist_roll_link")
-                gripper_pose = self.sim_object.robot.get_link_transform("gripper_link")
-                wrist_pose_wrt_gripper = np.matmul(np.linalg.inv(gripper_pose), wrist_roll_pose)
-
-                grasp_T = np.eye(4).dot(rot_mat).dot(obj_T_gripper)
-                grasp_T = world_T_obj.dot(grasp_T)
-                grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
-                grasp_pose = self.sim_object.poseFromMatrix(grasp_T)
-                ik_sols = self.sim_object.robot.get_ik_solutions(grasp_T,collision_fn=self.sim_object.collision_check)
-                if len(ik_sols) > 0:
-                    valid_pose = ik_sols
-                    break
+            j = np.random.choice(range(j))
         else:
             if surface_id != 0:
                 j = grasp_num
             else:
                 j = 1
 
-            rot_ang = (j * (2*np.pi) / Config.NUM_GRASPS)
-            # print(rot_ang)
-            obj_T_gripper = self.sim_object.matrixFromPose([1, 0, 0, 0, gripper_offset, 0, self.can_h/2.0])
-            rot_mat = self.sim_object.matrixFromAxisAngle([0, 0, rot_ang])
+        rot_ang = (j * (2*np.pi) / Config.NUM_GRASPS)
+        # print(rot_ang)
+        obj_T_gripper = useful_functions.transform_from_sevend_pose([1, 0, 0, 0, gripper_offset, 0, self.can_h/2.0])
+        rot_mat = useful_functions.rotmat_from_rotvec([0, 0, rot_ang])
 
-            wrist_roll_pose = self.sim_object.robot.get_link_transform("wrist_roll_link")
-            gripper_pose = self.sim_object.robot.get_link_transform("gripper_link")
-            wrist_pose_wrt_gripper = np.matmul(np.linalg.inv(gripper_pose), wrist_roll_pose)
+        wrist_roll_pose = self.sim_object.robot.get_link_transform("wrist_roll_link")
+        gripper_pose = self.sim_object.robot.get_link_transform("gripper_link")
+        wrist_pose_wrt_gripper = np.matmul(np.linalg.inv(gripper_pose), wrist_roll_pose)
 
-            grasp_T = world_T_obj.dot(rot_mat).dot(rot_Z).dot(obj_T_gripper)
-            grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
-            
-            grasp_pose = self.sim_object.poseFromMatrix(grasp_T)
-            ik_sols = self.sim_object.robot.get_ik_solutions(grasp_T,collision_fn=self.sim_object.collision_check)
-            if len(ik_sols) > 0:
-                valid_pose = ik_sols
+        grasp_T = world_T_obj.dot(rot_mat).dot(obj_T_gripper)
+        # grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
+        
+        ik_sols = self.sim_object.robot.get_ik_solutions(grasp_T,collision_fn=self.sim_object.collision_check)
+        if len(ik_sols) > 0:
+            valid_pose = ik_sols
         
         return valid_pose
 
@@ -427,18 +413,18 @@ class CafeWorld(object):
     def get_possible_configs(self,num_objects=1,configs_to_exclude=set([])):
         possible_configs=[]
 
-        if len(self.table_list) > 1:
-            random_cans = []
-            while len(random_cans) < 2 and np.random.randint(0,2) and num_objects > 1:
-                can_num = np.random.randint(1,num_objects)
-                if can_num not in random_cans:
-                    random_cans.append(can_num)
+        # if len(self.table_list) > 1:
+        #     random_cans = []
+        #     while len(random_cans) < 2 and np.random.randint(0,2) and num_objects > 1:
+        #         can_num = np.random.randint(1,num_objects)
+        #         if can_num not in random_cans:
+        #             random_cans.append(can_num)
 
-            for can_num in random_cans:
-                possible_configs.append(("can_{}".format(can_num),"surface_0"))
+        #     for can_num in random_cans:
+        #         possible_configs.append(("can_{}".format(can_num),"surface_0"))
 
-        else:
-            possible_configs.extend([("can_{}".format(can_num),"surface_0") for can_num in range(1,num_objects+1)])
+        # else:
+        #     possible_configs.extend([("can_{}".format(can_num),"surface_0") for can_num in range(1,num_objects+1)])
 
         for i in range(1,len(self.table_list)+1):
             possible_configs.extend([("can_{}".format(can_num),"surface_{}".format(i)) for can_num in range(1,num_objects+1)])
@@ -474,6 +460,7 @@ class CafeWorld(object):
         self.added_objects = []
 
         self.table_randomizer()
+        self.sim_object.robot.tuck_arm()
         random_range = self.get_random_range()
         random_limits = zip(*random_range)
         self.sim_object.robot.activate_base_joints()
@@ -505,7 +492,7 @@ class CafeWorld(object):
             init_surface_name = init_config[1]
             init_surface_id = int(init_surface_name.split("_")[Config.OBJ_ID_IND])
             init_surface_T = self.sim_object.get_obj(init_surface_name).get_transform()
-            init_surface_p = useful_functions.pose_from_transform(init_surface_T)
+            init_surface_p = useful_functions.sixd_pose_from_transform(init_surface_T)
             if init_surface_id == 0:
                 init_surface_type = "countertop"
             else:
@@ -549,15 +536,19 @@ class CafeWorld(object):
                         surface_range = self.default_table_range
                     ll_T = sampler(object_name=can_name,surface_name=init_surface_name,range=surface_range)
                     if ll_T is not None:
-                        ll_P = useful_functions.pose_from_transform(ll_T)
+                        ll_P = useful_functions.sixd_pose_from_transform(ll_T)
                         can.set_transform(ll_T)
-                        relative_pose = useful_functions.get_relative_pose(pose1=ll_P,pose2=init_surface_p)
-                        discretized_pose = discretizer.get_discretized_pose(input_pose=relative_pose,is_relative=True)
-                        discretized_pose.append(int(self.sim_object.robot.grabbed_flag_1))
+                        relative_pose_1 = useful_functions.get_relative_pose(pose1=ll_P,pose2=init_surface_p)
+                        discretized_pose_1 = discretizer.get_discretized_pose(input_pose=relative_pose_1,is_relative=True)
+                        discretized_pose_1.append(int(self.sim_object.robot.grabbed_flag_1))
+
+                        relative_pose_2 = useful_functions.get_relative_pose(pose1=init_surface_p,pose2=ll_P)
+                        discretized_pose_2 = discretizer.get_discretized_pose(input_pose=relative_pose_2,is_relative=True)
+                        discretized_pose_2.append(int(self.sim_object.robot.grabbed_flag_1))
 
                         if not (self.sim_object.collision_check([can]) or self.obj_checker(can)):
                             for region in rcr:
-                                if discretized_pose in region:
+                                if discretized_pose_1 in region or discretized_pose_2 in region:
                                     sample_flag = False
                                     if str(can.get_name()).split("_")[Config.OBJ_TYPE_IND] == Config.OBJECT_NAME[0]:
                                         self.added_objects.append(can)
@@ -730,6 +721,35 @@ class CafeWorld(object):
             counter+=1
 
         return traj,target_pose
+    
+    def get_random_manip_config(self):
+        self.sim_object.robot.activate_manip_joints()
+        current_dof = self.sim_object.robot.get_active_dof_values()
+        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,collision_fn=self.sim_object.collision_check)
+
+        return random_pose
+    
+    def get_random_base_config(self,random_limits):
+        self.sim_object.robot.activate_base_joints()
+        current_dof = self.sim_object.robot.get_active_dof_values()
+        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,limits=random_limits,collision_fn=self.sim_object.collision_check)
+
+        return random_pose
+
+    def compute_random_mp(self):
+        random_traj = None
+        count = 0
+        while random_traj is None and count < 5:
+            ik = self.get_random_manip_config()
+            if ik is not None:
+                if self.compute_mp:
+                    random_traj = self.sim_object.compute_motion_plan(goal=ik)
+                else:
+                    random_traj = [ik]
+
+            count += 1
+
+        return random_traj
 
     @SimClass.conditional_env_lock
     def start(self,complete_random=False):
@@ -765,8 +785,12 @@ class CafeWorld(object):
                         surface2_type = "table"
 
                     #KP_1
-                    state_1 = [self.sim_object.get_one_state()]
-
+                    self.sim_object.robot.activate_manip_joints()
+                    current_dof = self.sim_object.robot.get_active_dof_values()
+                    random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,collision_fn=self.sim_object.collision_check)
+                    state_1 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
+                    # state_1 = [self.sim_object.get_current_state()]
+		
                     base_sampler = getattr(self,"sample_robot_base_{}".format(surface1_type))
 
                     # print("sampling surface 1")
@@ -807,42 +831,36 @@ class CafeWorld(object):
                     #KP_2
                     state_2 = self.sim_object.get_state_block(traj=traj_1,config_tuple=init_config)
                     #KP_3
-                    state_3 = []
-                    if not self.compute_mp:
-                        self.sim_object.robot.activate_manip_joints()
-                        current_dof = self.sim_object.robot.get_active_dof_values()
-                        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,collision_fn=self.sim_object.collision_check)
-                        state_3 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
-
-                    #KP_4 and KP_5
-                    state_4_5 = self.sim_object.get_state_block(traj=traj_2,config_tuple=init_config,grab=True)
-                    #KP_6
-                    state_6 = []
-                    if not self.compute_mp:
-                        self.sim_object.robot.activate_manip_joints()
-                        current_dof = self.sim_object.robot.get_active_dof_values()
-                        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,collision_fn=self.sim_object.collision_check)
-                        state_6 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
-
-                    # print("tucking arm with object")
-                    traj_3, _ = self.motion_plan_robot_arm()
-                    if traj_3 is None:
+                    state_3 = []                    
+                    random_traj = self.compute_random_mp()                    
+                    if random_traj is None:
                         if j == 0:
                             flag=1
                         else:
                             flag=2
                         break
-                        
+
+                    state_3 = self.sim_object.get_state_block(traj=random_traj,config_tuple=init_config)
+
+                    #KP_4 and KP_5
+                    state_4_5 = self.sim_object.get_state_block(traj=traj_2,config_tuple=init_config,grab=True)
+                    #KP_6
+                    state_6 = []
+                    random_traj = self.compute_random_mp()                    
+                    if random_traj is None:
+                        if j == 0:
+                            flag=1
+                        else:
+                            flag=2
+                        break
+
+                    state_6 = self.sim_object.get_state_block(traj=random_traj,config_tuple=init_config)
+
                     #KP_7
-                    state_7 = self.sim_object.get_state_block(traj=traj_3,config_tuple=init_config)
-                    
-                    #KP_8
-                    state_8 = []
+                    state_7 = []
                     if not self.compute_mp:
-                        self.sim_object.robot.activate_base_joints()
-                        current_dof = self.sim_object.robot.get_active_dof_values()
-                        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,limits=random_limits,collision_fn=self.sim_object.collision_check)
-                        state_8 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
+                        random_pose = self.get_random_base_config(random_limits=random_limits)
+                        state_7 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
 
                     # print("sampling surface 2")
                     base_sampler = getattr(self,"sample_robot_base_{}".format(surface2_type))
@@ -890,44 +908,23 @@ class CafeWorld(object):
                             flag=2
                         break
                         
-                    #KP_9
-                    state_9 = self.sim_object.get_state_block(traj=traj_4,config_tuple=goal_config)
-                    #KP_10
-                    state_10 = []
-                    if not self.compute_mp:
-                        self.sim_object.robot.activate_manip_joints()
-                        current_dof = self.sim_object.robot.get_active_dof_values()
-                        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,collision_fn=self.sim_object.collision_check)
-                        state_10 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
+                    #KP_8
+                    state_8 = self.sim_object.get_state_block(traj=traj_4,config_tuple=goal_config)
                     
-                    #KP_11 and KP_12
-                    state_11_12 = self.sim_object.get_state_block(traj=traj_5,config_tuple=goal_config,grab=False)
+                    #KP_9 and KP_10
+                    state_9_10 = self.sim_object.get_state_block(traj=traj_5,config_tuple=goal_config,grab=False)
 
-                    #KP_13
-                    state_13 = []
-                    if not self.compute_mp:
-                        self.sim_object.robot.activate_manip_joints()
-                        current_dof = self.sim_object.robot.get_active_dof_values()
-                        random_pose,_ = self.sim_object.robot.random_config_robot(current_dof=current_dof,collision_fn=self.sim_object.collision_check)
-                        state_13 = self.sim_object.get_state_block(traj=[random_pose],config_tuple=init_config)
-
-                    #tucking arm
-                    # print("tucking empty arm")
-                    traj_6 = None
-                    count = 0
-                    while traj_6 is None and count<5:
-                        traj_6,_ = self.motion_plan_robot_arm()
-                        count+=1
-
-                    if traj_6 is None:
+                    #KP_11
+                    state_11 = []
+                    random_traj = self.compute_random_mp()                    
+                    if random_traj is None:
                         if j == 0:
                             flag=1
                         else:
                             flag=2
                         break
-                        
-                    #KP_14
-                    state_14 = self.sim_object.get_state_block(traj=traj_6,config_tuple=init_config)
+
+                    state_11 = self.sim_object.get_state_block(traj=random_traj,config_tuple=init_config)
 
                     #random_placing_robot
                     # print("random place robot in end")
@@ -944,10 +941,10 @@ class CafeWorld(object):
                             flag=2
                         break
 
-                    #KP_15
-                    state_15 = self.sim_object.get_state_block(traj=traj_7,config_tuple=goal_config)
+                    #KP_12
+                    state_12 = self.sim_object.get_state_block(traj=traj_7,config_tuple=goal_config)
 
-                    states = [state_1,state_2,state_3,state_4_5,state_6,state_7,state_8,state_9,state_10,state_11_12,state_13,state_14,state_15]
+                    states = [state_1,state_2,state_3,state_4_5,state_6,state_7,state_8,state_9_10,state_11,state_12]
                     if self.random != -1:
                         last_ind = np.random.randint(low=1,high=len(states))
                     else:
@@ -998,8 +995,8 @@ class CafeWorld(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        cPickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list.p" ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name + Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL)
+        pickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list"+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
                 
         print("{} data saved".format(self.env_name))
 
@@ -1044,7 +1041,7 @@ class CafeWorld(object):
         color = [0,0.8,1]
         body_name = Config.OBJECT_NAME[0] + "_{}".format(len(self.can_list)+1)
 
-        t = self.sim_object.matrixFromPose([1, 0, 0, 0, 0, 0, -0.5])
+        t = useful_functions.transform_from_sevend_pose([1, 0, 0, 0, 0, 0, -0.5])
         cylinder = Object(model_gen_utils.create_cylinder(self.sim_object.env, body_name, t, [radius, height], color))
 
         self.sim_object.add_obj(cylinder)

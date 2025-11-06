@@ -14,17 +14,16 @@ RUN apt-get update && apt-get install -q -y --no-install-recommends \
     g++-4.8 \
     cmake \
     python-pip \
-    python-scipy \
+    python3-pip \
     coreutils \
     nano \
     vim \
     tmux \
     ipython \
+    ipython3 \
     minizip \
     python-dev \
     python-h5py \
-    python-numpy \
-    python-scipy \
     python-sympy \
     qt4-dev-tools \
     wget \
@@ -98,6 +97,7 @@ RUN apt-get install -y --no-install-recommends \
     doxygen \
     octave \
     python-setuptools \
+    python3-setuptools \
     mlocate \
     python-tk
 
@@ -105,9 +105,10 @@ RUN python2.7 -m pip install matplotlib==2.2.0 --user
 RUN python2.7 -m pip install pydot==1.2.3
 RUN python2 -m pip install enum34 --user
 RUN python2 -m pip install networkx==2.2 --user
-RUN python2 -m pip install scikit-learn
+RUN python2 -m pip install --upgrade scikit-learn
 
-RUN pip install pyopengl tqdm
+RUN pip3 install --upgrade torch scipy scikit-learn networkx
+RUN pip install pyopengl tqdm scipy --upgrade
 
 RUN mkdir -p ~/git; cd ~/git && \
    wget https://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.gz/download?use_mirror=autoselect -O ~/git/boost_1_58_0.tar.gz && \

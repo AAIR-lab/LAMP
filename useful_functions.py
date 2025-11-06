@@ -7,15 +7,23 @@ import os
 from Config import Config
 import numpy as np
 import heapq
-import pickle as cPickle
 import subprocess
 import json
 import copy
 from itertools import product
 import importlib
 import inspect
+from scipy.spatial.transform import Rotation as R
+import pickle
 
-sim_utils = Config.get_simulator_module("sim_utils")
+if Config.PYTHON_VER_INT > 2:
+    import torch
+
+def load_pickle(arg):
+    if Config.PYTHON_VER_INT == 2:
+        return pickle.load(arg)
+    else:
+        return pickle.load(arg,encoding="latin1")
 
 def import_all_methods_from_module(module, current_module=sys.modules[__name__]):
     for atr in dir(module):
@@ -115,46 +123,35 @@ def get_object_list_from_env_state(env_state,objects_not_found=[]):
     
     return object_name_list
 
-def get_lifted_relations_dict(env_object_list,rcrs):    
+def get_lifted_relations_dict(rcrs):    
     lifted_relations_dict = {}
     for link1 in rcrs.keys():
-        for link2 in rcrs[link1].keys(): 
-            link1_list = []
-            link2_list = []
-            for obj in env_object_list:
-                if obj.split("_")[Config.OBJ_TYPE_IND] == link1:
-                    link1_list.append(obj)
-                if obj.split("_")[Config.OBJ_TYPE_IND] == link2:
-                    link2_list.append(obj)
-                    
+        for link2 in rcrs[link1].keys():                     
             lifted_regions = rcrs[link1][link2]
-            for obj1 in link1_list:
-                for obj2 in link2_list:
-                    if obj2 != obj1:
-                        obj1_type = obj1.split("_")[Config.OBJ_TYPE_IND]
-                        obj2_type = obj2.split("_")[Config.OBJ_TYPE_IND]
+            obj1_type = link1
+            obj2_type = link2
 
-                        key_string = "{}_{}".format(obj1_type,obj2_type)
-                        if key_string not in lifted_relations_dict.keys():
-                            lifted_relations_dict[key_string] = {}                            
-                            for cr in range(len(lifted_regions)+1):
-                                obj1_type, obj2_type = key_string.split("_")
-                                if cr == 0:
-                                    region = []
-                                    for r in lifted_regions:
-                                        region.extend(r)
-                                else:
-                                    region = lifted_regions[cr-1]
-                                
-                                discretizer = Config.get_discretizer(obj1=obj1_type,obj2=obj2_type)
+            key_string = "{}_{}".format(obj1_type,obj2_type)
+            if key_string not in lifted_relations_dict.keys():
+                lifted_relations_dict[key_string] = {}                            
+                for cr in range(len(lifted_regions)+1):
+                    obj1_type, obj2_type = key_string.split("_")
+                    if cr == 0:
+                        region = []
+                        for r in lifted_regions:
+                            region.extend(r)
+                    else:
+                        region = lifted_regions[cr-1]
+                    
+                    discretizer = Config.get_discretizer(obj1=obj1_type,obj2=obj2_type)
 
-                                relation = Relation(parameter1_type=obj1_type,
-                                                    parameter2_type=obj2_type,
-                                                    cr = cr,
-                                                    region = region,
-                                                    discretizer=discretizer)
-                                
-                                lifted_relations_dict[key_string][cr] = relation
+                    relation = Relation(parameter1_type=obj1_type,
+                                        parameter2_type=obj2_type,
+                                        cr = cr,
+                                        region = region,
+                                        discretizer=discretizer)
+                    
+                    lifted_relations_dict[key_string][cr] = relation
 
     return lifted_relations_dict
 
@@ -215,31 +212,31 @@ def get_abstract_traj(traj,object_dictionary,lifted_relations_dict,aux_list,env_
     return abstract_traj
 
 def load_traj(env):
-    with open(Config.DATA_MISC_DIR+"{0}/{0}_data.p".format(env)) as f:
-        traj_data = cPickle.load(f)
+    with open(Config.DATA_MISC_DIR+"{0}/{0}_data{1}".format(env,Config.PICKLE_SUFFIX),"rb") as f:
+        traj_data = load_pickle(f)
         f.close()
     return traj_data
 
 def load_augmented_traj(env):
-    with open(Config.DATA_MISC_DIR+"{0}/{0}_binned_data.p".format(env)) as f:
-        traj_data = cPickle.load(f)
+    with open(Config.DATA_MISC_DIR+"{0}/{0}_binned_data{1}".format(env,Config.PICKLE_SUFFIX),"rb") as f:
+        traj_data = load_pickle(f)
         f.close()
     return traj_data
 
 def load_augmented_traj(env):
-    with open(Config.DATA_MISC_DIR+"{0}/{0}abstract_data.p".format(env)) as f:
-        traj_data = cPickle.load(f)
+    with open(Config.DATA_MISC_DIR+"{0}/{0}abstract_data{1}".format(env,Config.PICKLE_SUFFIX),"rb") as f:
+        traj_data = load_pickle(f)
         f.close()
     return traj_data
 
 def load_rcrs(file_prefix):
-    data_load = cPickle.load(open(Config.DATA_MISC_DIR+"{}rcr_indices.p".format(file_prefix)))
+    data_load = load_pickle(open(Config.DATA_MISC_DIR+"{}rcr_indices{}".format(file_prefix,Config.PICKLE_SUFFIX),"rb"))
     return data_load
 
 def load_model(file_prefix,model_num=1):
     name = "{}{}_{}".format(file_prefix,Config.DOMAIN_NAME,model_num)
-    with open(Config.DATA_MISC_DIR+name+".p","rb") as f:
-        data = cPickle.load(f)
+    with open(Config.DATA_MISC_DIR+name+Config.PICKLE_SUFFIX,"rb") as f:
+        data = load_pickle(f)
         f.close()
     return data
 
@@ -294,8 +291,8 @@ def changed_relations_from_transition(state1,state2):
     return added_relations,deleted_relations,added_auxilaries,deleted_auxilaries
 
 def get_used_trajectories(file_prefix):
-    with open(Config.DATA_MISC_DIR+file_prefix+"trajs_used.p") as f:
-        data = cPickle.load(f)
+    with open(Config.DATA_MISC_DIR+file_prefix+"trajs_used"+Config.PICKLE_SUFFIX,"rb") as f:
+        data = load_pickle(f)
         f.close()
 
     return data
@@ -360,12 +357,14 @@ def get_obj_type(obj_name): #TODO: think of a better name
 def update_to_const(param_name):
     return ("{}_"*len(param_name.split("_")[:Config.OBJ_ID_IND])).format(*param_name.split("_")[:Config.OBJ_ID_IND]) + "Const"
 
-def get_lifted_relations_in_state(env_state,lifted_relations_dict):
+def get_lifted_relations_in_state(env_state,lifted_relations_dict,object_dictionary=None):
     re_dict = {}
     aux_present = set([])
 
-    obj_list = get_object_list_from_env_state(env_state)
-    object_dictionary = get_object_dictionary(obj_list)
+    if object_dictionary is None:
+        obj_list = get_object_list_from_env_state(env_state)
+        object_dictionary = get_object_dictionary(obj_list)
+
     aux_list = get_auxilary_preds(object_dictionary=object_dictionary, lifted_relations_dict=lifted_relations_dict)
     
     abstract_state = get_abstract_state(env_state,object_dictionary, lifted_relations_dict, aux_list)
@@ -401,10 +400,125 @@ def get_all_objects(env_list):
         else:
             env_name = env
 
-        with open(Config.DATA_MISC_DIR+"/{0}/{0}_object_list.p".format(env_name),"rb") as f:
-            objects_set.update(cPickle.load(f))
+        with open(Config.DATA_MISC_DIR+"/{0}/{0}_object_list{1}".format(env_name,Config.PICKLE_SUFFIX),"rb") as f:
+            objects_set.update(load_pickle(f))
 
     return objects_set
+
+def transform_from_sixd_pose(DOF):
+    rot = np.eye(4)
+    dof_vals = copy.deepcopy(DOF)
+    if len(dof_vals) == 3:
+        if Config.PYTHON_VER_INT == 2:
+            rot[:3,:3] = R.from_rotvec([0,0,dof_vals[-1]]).as_dcm()
+        else:
+            rot[:3,:3] = R.from_rotvec([0,0,dof_vals[-1]]).as_matrix()
+
+        pos = [dof_vals[0],dof_vals[1],0]
+    
+    else:
+        if Config.PYTHON_VER_INT == 2:
+            rot[:3,:3] = R.from_rotvec(dof_vals[3:]).as_dcm()
+        else:
+            rot[:3,:3] = R.from_rotvec(dof_vals[3:]).as_matrix()
+    
+        pos = dof_vals[:3]
+
+    rot[:3,3] = pos
+    
+    return rot
+
+def sixd_pose_from_transform(T):
+    transform = copy.deepcopy(T)
+    pos = transform[:3,3]
+    if Config.PYTHON_VER_INT == 2:
+        orn = R.from_dcm(transform[:3,:3]).as_rotvec()
+    else:
+        orn = R.from_matrix(transform[:3,:3]).as_rotvec()
+
+    dofs = []
+    dofs.extend(pos)
+    dofs.extend(orn)
+
+    return dofs    
+
+def rotmat_from_rotvec(rot_vec):
+    rot = np.eye(4)
+    if Config.PYTHON_VER_INT == 2:
+        rot[:3,:3] = R.from_rotvec(rot_vec).as_dcm()
+    else:
+        rot[:3,:3] = R.from_rotvec(rot_vec).as_matrix() 
+    
+    return rot
+
+def rotvec_from_rotmat(rotmat):
+    if Config.PYTHON_VER_INT == 2:
+        orn = R.from_dcm(rotmat[:3,:3]).as_rotvec()
+    else:
+        orn = R.from_matrix(rotmat[:3,:3]).as_rotvec()
+    
+    return orn
+
+def transform_from_sevend_pose(DOF):
+    rot = np.eye(4)
+    dof_vals = copy.deepcopy(DOF)
+    if len(dof_vals) == 3:
+        raise NotImplementedError("not yet implemented to handle 3 DIM conversion")
+    else:
+        if Config.PYTHON_VER_INT == 2:
+            rot[:3,:3] = R.from_quat(dof_vals[:4][::-1]).as_dcm()
+        else:
+            rot[:3,:3] = R.from_quat(dof_vals[:4],scalar_first=True).as_matrix()
+
+        pos = dof_vals[4:]
+
+    rot[:3,3] = pos
+    
+    return rot
+
+def sevend_pose_from_transform(T):
+    transform = copy.deepcopy(T)
+    pos = transform[:3,3]
+    if Config.PYTHON_VER_INT == 2:
+        orn = R.from_dcm(transform[:3,:3]).as_quaternion()[::-1]
+    else:
+        orn = R.from_matrix(transform[:3,:3]).as_quaternion(scalar_first=True)
+
+    dofs = []
+    dofs.extend(orn)
+    dofs.extend(pos)
+
+    return dofs    
+
+def get_relative_pose(pose1, pose2):
+    #obj2 w.r.t. obj1
+    transform1 = transform_from_sixd_pose(pose1)
+    transform2 = transform_from_sixd_pose(pose2)
+    return sixd_pose_from_transform((np.linalg.pinv(transform1).dot(transform2)))
+
+def get_relative_transform(transform1, transform2):
+    #obj2 w.r.t. obj1
+    return (np.linalg.pinv(transform1).dot(transform2))
+
+def get_relative_pose_tensor(tensor_1, tensor_2):
+    #obj2 w.r.t. obj1
+    device = tensor_1.device
+    dtype = tensor_1.dtype
+
+    p1 = tensor_1[:,:3]
+    p2 = tensor_2[:,:3]
+
+    q1 = R.from_rotvec(tensor_1[:,3:])
+    q2 = R.from_rotvec(tensor_2[:,3:])
+
+    q1_invert = R.inv(q1)
+
+    rel_q = torch.tensor((q2*q1_invert).as_rotvec(),device=device,dtype=dtype)
+    rel_pos = torch.tensor(q1_invert.apply(p2) - q1_invert.apply(p1),device=device,dtype=dtype)
+
+    rel_tensor = torch.concat((rel_pos,rel_q),axis=-1)
+
+    return rel_tensor
 
 class Node(object):
     def __init__(self,name,parent):
@@ -427,5 +541,3 @@ class Stack:
     def isEmpty(self):
         "Returns true if the stack is empty"
         return len(self.list) == 0
-
-import_all_methods_from_module(sim_utils)

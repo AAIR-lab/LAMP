@@ -90,7 +90,7 @@ test_structure = "test_structure_placeholder"
 latest_model_num = 0
 problem_dict = {
     "Keva": ["pi_tower;9;0;x","tripple_pi;6;0;x","tripple_pi;9;0;x","flat_tower;24;0;y","keva_three_tower;24;0;y","flat_3_tower;12;0;y","2d_house;6;0;y","twin_stacked_pi;30;0;y","random;5;0;x","stonehenge;18;0;x","flat_tower;6;0;y","fort_curricullum;6;0;y","2_pi;6;0;x"],
-    "CafeWorld": ["can_surface;8;0;x" for _ in range(10)] + ["can_surface;16;0;x","can_surface;18;0;x","can_surface;20;0;x"],
+    "CafeWorld": ["can_surface;6;0;x" if _+1 in [1,5,6,8,9,10] else "can_surface;8;0;x" for _ in range(10)] + ["can_surface;16;0;x","can_surface;18;0;x","can_surface;20;0;x"],
     "Packing": ["can_surface;4;0;x" for _ in range(13)]
 } 
 
@@ -142,7 +142,7 @@ while problems_completed < len(problem_list):
             Config.ROOT_DIR,
             prefix
         ]   
-        command = "python {11}experiments.py -n {0} -a {1} -r {2} -o -p {3} --num_robots {4} -t {5} --create_domain_file --process_count {6} --problem_num {7} --model_num 1 --no_motion_plan --experiment_flag --seed {8} --total_traj_count {9} --ff -d {10} --prefix {12}".format(*argument_list)
+        command = "python {11}experiments.py -n {0} -a {1} -r {2} -o -p {3} --num_robots {4} -t {5} --create_domain_file --process_count {6} --problem_num {7} --model_num 0 --no_motion_plan --experiment_flag --seed {8} --total_traj_count {9} --ff -d {10} --prefix {12}".format(*argument_list)
     
     else:
         file_prefix = "{}_{}".format(total_traj_count,prefix)
@@ -186,7 +186,7 @@ while problems_completed < len(problem_list):
     
     print("starting problem {} with id: {}".format(problems_completed,i))
     while p.poll() is None:
-        if time.time() - start_time > 3600*3: 
+        if time.time() - start_time > 3600*7: 
             p.kill()
             killed = True
 

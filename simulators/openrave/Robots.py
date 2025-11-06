@@ -3,7 +3,7 @@ import time
 import os
 import sys
 from trac_ik_python.trac_ik import IK
-from useful_functions import blockPrinting, pose_from_transform, transform_from_pose, get_relative_transform
+from useful_functions import blockPrinting, sixd_pose_from_transform, transform_from_sixd_pose, get_relative_transform
 
 def get_parent_with_file(file_name):
     current_dir = os.getcwd()
@@ -159,7 +159,7 @@ class Robot(Object):
         return collision
 
     def get_ik_solutions(self,end_effector_solution,check_collisions=True,robot_param=None,collision_fn = None):
-        solution = pose_from_transform(end_effector_solution)
+        solution = sixd_pose_from_transform(end_effector_solution)
         if collision_fn is not None and check_collisions: 
             if Robot.check_collision(self.obj, solution, collision_fn):
                 return [ ]
@@ -443,7 +443,7 @@ class Fetch(Robot):
             collision = check_collisions
     
             required_T = np.linalg.pinv(self.base_link.GetTransform()).dot(end_effector_solution)
-            pose = pose_from_transform(required_T)
+            pose = sixd_pose_from_transform(required_T)
             pos = pose[:3]
             orn = sim.quatFromAxisAngle(pose[3:])
 
@@ -657,7 +657,7 @@ class yumi(Robot):
         ik_count = 0
         
         required_T = np.linalg.pinv(self.obj_init_transform).dot(end_effector_solution)
-        pose = pose_from_transform(required_T)
+        pose = sixd_pose_from_transform(required_T)
         pos = pose[:3]
         orn = sim.quatFromAxisAngle(pose[3:])
 

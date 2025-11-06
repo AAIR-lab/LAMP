@@ -163,7 +163,7 @@ class LiftedPDDLAction(object):
         additional_param_objects = {}
         sorted_true_set = list(cluster[0][0].true_set)
         sorted_true_set.sort()
-        sorted_true_set = sorted_true_set[::-1]
+        # sorted_true_set = sorted_true_set[::-1]
 
         for relation in sorted_true_set: 
             lr = relation.get_lifted_relation()
@@ -398,7 +398,7 @@ class LiftedPDDLAction(object):
             local_additional_param_objects = {}
             local_sorted_true_set = list(state1.true_set)
             local_sorted_true_set.sort()
-            local_sorted_true_set = local_sorted_true_set[::-1]
+            # local_sorted_true_set = local_sorted_true_set[::-1]
 
             local_changed = list(local_changed)
             local_changed.sort()
@@ -432,7 +432,7 @@ class LiftedPDDLAction(object):
                                     lr_index = lr_i 
                                     break 
 
-                        assert(lr_inded != -1) 
+                        assert(lr_index != -1) 
                     
                     pid1 = copy.deepcopy(relation_param_mapping[lr][lr_index][0])
                     pid2 = copy.deepcopy(relation_param_mapping[lr][lr_index][1])                                          
@@ -903,9 +903,7 @@ class GroundedPDDLAction(object):
         grabbed_bool = None
         used_relations = set([])
         relation_selected = False
-        objects_in_collision_list = []
-        objects_in_collision_flag = False
-        while not (relation_selected or objects_in_collision_flag):
+        while not relation_selected:
             relation_options = self.effect.add_set.difference(used_relations)
             if len(relation_options) == 0:
                 break
@@ -920,32 +918,23 @@ class GroundedPDDLAction(object):
                 self.set_sampling_region(relation_to_use) # sets the self.try_next_region flag internally
                 
                 while self.sampling_region is not None: 
-                    objects_in_collision_flag = False
                     try: 
-                        next_sample,lifted_region_used,object_with_transform,sampled_refined_grounded_pose,rob, static_list, eef_transform,objects_in_collision_list, delta_mp = relation_to_use.get_next_sample()
+                        next_sample,lifted_region_used,object_with_transform,rob, static_list, eef_transform = relation_to_use.get_next_sample()
                     except StopIteration: # region out of samples. move to different region 
                         valid_sample_found = False
                         if not self.set_next_mapping(relation_to_use,env_state,sim_object,action_info):
                             continue                        
                         self.try_next_region = True
-                        if len(objects_in_collision_list) > 0:
-                            objects_in_collision_flag = True
                         break
                     
-                    if len(next_sample) == Config.SENSOR_COUNT or \
-                        (delta_mp is not None and len(delta_mp) == Config.SENSOR_COUNT):
-                        if len(objects_in_collision_list) == 0:
-                            continue
-                        else:
-                            objects_in_collision_flag = True
-                            valid_sample_found = False
-                            break
+                    if len(next_sample) == Config.SENSOR_COUNT:
+                        continue
 
-                    static_object = self.get_static_object(static_list,relation_to_use)
+                    static_object = static_list[0]
                     grabbed_bool = self.get_grabbed_bool(grabbed_relation,next_sample,relation_to_use,current_grabbed_flag)
 
                     # check if this sample is valid or not
-                    satisfactory_flag,new_env_state,failed_relation = self.satisfactory_sample(object_with_transform,sampled_refined_grounded_pose,env_state,grabbed_bool,sim_object,rob,next_sample,delta_mp)
+                    satisfactory_flag,new_env_state,failed_relation = self.satisfactory_sample(object_with_transform,env_state,grabbed_bool,sim_object,rob,next_sample)
 
                     if satisfactory_flag: 
                         valid_sample_found = True 
@@ -953,23 +942,19 @@ class GroundedPDDLAction(object):
                 
                 if valid_sample_found or self.sampling_region is None: 
                     break 
-                else:
-                    if objects_in_collision_flag:
-                        break
-            
+
             if valid_sample_found: 
                 if self.motion_plan_flag_check(env_state,relation_to_use,current_grabbed_flag):
                     traj, flag = self.get_traj_from_sample(next_sample,sim_object,rob,compute_motion_plan)
             else: 
-                if not objects_in_collision_flag:
-                    used_relations.add(relation_to_use)
+                used_relations.add(relation_to_use)
 
             if traj is not None or grabbed_bool is not None:
                 relation_selected = True
                 break
             
         if len(relation_options) == 0:
-            return None, None, (None, None, None), None, None, None, None, []
+            return None, None, (None, None, None), None, None, None
         
         lifted_region_used_sampling_count = 1
         if relation_to_use in previous_instances.keys():
@@ -982,22 +967,13 @@ class GroundedPDDLAction(object):
         prev_instance_tuple = (relation_to_use,lifted_region_used,lifted_region_used_sampling_count)
         
         if (traj is not None or flag == 1) and grabbed_bool is not None:
-            return None, None, prev_instance_tuple, rob, sampled_refined_grounded_pose, static_object, eef_transform, objects_in_collision_list
-        
-        if delta_mp is not None:
-            if traj is not None:
-                traj_list = [traj,delta_mp]
-                grab_list = None
-                
-            if grabbed_bool is not None:
-                grab_list = [grabbed_bool,delta_mp]
-                traj_list = None
+            return None, None, prev_instance_tuple, rob, static_object, eef_transform
         
         else:
             traj_list = traj
             grab_list = grabbed_bool
 
-        return traj_list,grab_list,prev_instance_tuple, rob, sampled_refined_grounded_pose, static_object, eef_transform, objects_in_collision_list
+        return traj_list,grab_list,prev_instance_tuple, rob, static_object, eef_transform
     
     def get_grabbed_in_state(self,env_state):
         grabbed = False
@@ -1086,7 +1062,7 @@ class GroundedPDDLAction(object):
             relation_to_use.reset_current_mapping()
             self.mapping_gen_dict[relation_to_use] = relation_to_use.get_mapping_generator()
         else:
-            relation_to_use.init_sample_generator(env_state, sim_object, self.sampling_region,action_info)
+            relation_to_use.init_sample_generator(env_state, sim_object, self.sampling_region, action_info)
         
         return reset_flag
 
@@ -1094,7 +1070,7 @@ class GroundedPDDLAction(object):
         if self.sampling_region is None:
             return True
         
-        return self.sampling_region >= len(relation_to_use.sampling_region_list)
+        return self.sampling_region >= len(relation_to_use.useful_components_list)
 
     def set_sampling_region(self,relation_to_use):
         reset_sampling_flag = self.check_reset_sampling_flag(relation_to_use)
@@ -1105,19 +1081,6 @@ class GroundedPDDLAction(object):
             except StopIteration: # relation out of regions. move to different relation
                 self.sampling_region = None
                 self.use_next_relation = True
-        
-    def get_static_object(self,static_list,relation_to_use):
-        static_object = static_list[0]
-
-        # if static_list[0].split("_")[Config.OBJ_TYPE_IND] in Config.CONST_TYPES: #finding corresponding goalLoc id #TODO:verify this
-        #     static_object,static_num = static_list
-        #     param_index = 2-static_num
-        #     param_list = [relation_to_use.parameter1,relation_to_use.parameter2]
-        #     other_param = param_list[param_index]
-        #     static_object = static_object.split("_")[Config.OBJ_TYPE_IND] + "_" +other_param.split("_")[Config.OBJ_ID_IND]
-        #     static_object = "{}_{}".format(*static_object.split("_")[:Config.OBJ_ID_IND]) + "_" +other_param.split("_")[Config.OBJ_ID_IND]                   
-
-        return static_object
 
     def get_grabbed_bool(self,grabbed_relation,next_sample,relation_to_use,current_grabbed_flag):
         grabbed_bool = None             
@@ -1166,7 +1129,7 @@ class GroundedPDDLAction(object):
         
         return traj, flag
 
-    def satisfactory_sample(self,object_with_transform,sampled_refined_grounded_pose,env_state,grabbed_bool,sim_object,rob,robot_dof_vals,delta_mp=None):        
+    def satisfactory_sample(self,object_with_transform,env_state,grabbed_bool,sim_object,rob,robot_dof_vals):        
         grabbed_obj_name = None
         if grabbed_bool is not None:
             if grabbed_bool:
@@ -1184,12 +1147,6 @@ class GroundedPDDLAction(object):
             traj = robot_dof_vals[:-Config.SENSOR_COUNT]
         
         new_env_state = sim_object.execute_refinement(traj=traj,robot=rob,obj_name=grabbed_obj_name)
-        if delta_mp is not None:
-            if type(traj) == bool:
-                sim_object.execute_refinement(traj=not(traj),robot=rob,obj_name=grabbed_obj_name)
-            new_env_state = sim_object.execute_refinement(traj=delta_mp[:-Config.SENSOR_COUNT],robot=rob,obj_name=grabbed_obj_name)
-            if type(traj) == bool:
-                new_env_state = sim_object.execute_refinement(traj=traj,robot=rob,obj_name=grabbed_obj_name,delta_mp=True)
 
         for relation in self.effect.add_set:
             if relation.evaluate_in_ll_state(new_env_state) is not True:

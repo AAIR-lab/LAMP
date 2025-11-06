@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 import pickle
-import cPickle
+import pickle
 import numpy as np
 import tqdm
 import json
@@ -114,7 +114,7 @@ def get_ros_plan(ll_plan,sim_object,test_structure):
             desired_ik = sim_object.grabbed_armTuckDOFs
             # sim_object.robot.SetActiveDOFValues(sim_object.grabbed_armTuckDOFs)
             # static_object = "yumi_body"
-            # static_object_pose = sim_object.get_pose_from_transform(sim_object.robot.GetLink("yumi_body").GetTransform())
+            # static_object_pose = sim_object.get_sixd_pose_from_transform(sim_object.robot.GetLink("yumi_body").GetTransform())
         
         elif (rel.parameter1_type in Config.ROBOT_TYPES and rel.parameter2_type in Config.ROBOT_TYPES and rel.cr == 1):
             is_ik = True
@@ -122,10 +122,10 @@ def get_ros_plan(ll_plan,sim_object,test_structure):
             desired_ik = sim_object.grabbed_armTuckDOFs
             # sim_object.robot.SetActiveDOFValues(sim_object.grabbed_armTuckDOFs)
             # static_object = "yumi_body"
-            # static_object_pose = sim_object.get_pose_from_transform(sim_object.robot.GetLink("yumi_body").GetTransform())
+            # static_object_pose = sim_object.get_sixd_pose_from_transform(sim_object.robot.GetLink("yumi_body").GetTransform())
 
         for n in range(env_state.num_robots):
-            # ik_link_pose = sim_object.get_pose_from_transform(sim_object.ik_link.GetTransform())
+            # ik_link_pose = sim_object.get_sixd_pose_from_transform(sim_object.ik_link.GetTransform())
             # gripper_poses.append(sim_object.get_relative_pose(static_object_pose,ik_link_pose))
             # gripper_poses.append(env_state.object_dict["gripper_{}".format(n+1)][1])
             gripper_poses.append(sim_object.get_relative_pose(static_object_pose,env_state.object_dict["gripper_{}".format(n+1)][1]))
@@ -181,9 +181,9 @@ def get_ros_plan(ll_plan,sim_object,test_structure):
         action_msg_object.desired_ik = act.desired_ik
         action_msg_object.is_ik = act.is_ik
         
-        gripper_pose_t = transform_from_pose(act.gripper_pose[0])
+        gripper_pose_t = transform_from_sixd_pose(act.gripper_pose[0])
         if len(act.base_pose)>0:
-            base_pose_t = transform_from_pose(act.base_pose[0])
+            base_pose_t = transform_from_sixd_pose(act.base_pose[0])
         else:
             base_pose_t = np.ones((4,4))
 
@@ -198,13 +198,13 @@ def get_ros_plan(ll_plan,sim_object,test_structure):
     
     get_pose_stamped_for_goals(test_structure+"_structure",sim_object)
     with open(Config.ROS_WS_DIR+"ROSPlan_{}_{}.p".format(Config.DOMAIN_NAME,test_structure),"wb") as f:
-        cPickle.dump(plan,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(plan,f, )
         f.close()          
 
     print("ROSPlan saved")
 
 def get_three_dof_pose(transform):
-    p = useful_functions.pose_from_transform(transform)
+    p = useful_functions.sixd_pose_from_transform(transform)
     return [p[0],p[1],p[-1]]
 
 def get_env_state_from_msg(env_msg):
@@ -213,11 +213,11 @@ def get_env_state_from_msg(env_msg):
         obj_name = obj.name
         obj_type = obj_name.split("_")[Config.OBJ_TYPE_IND]
 
-        t = utils.get_transform_from_pose(obj.pose.pose)
+        t = utils.get_transform_from_sixd_pose(obj.pose.pose)
         if obj_type not in Config.ROBOT_TYPES.keys() + ["human"]:
-            req_val = useful_functions.pose_from_transform(t)
+            req_val = useful_functions.sixd_pose_from_transform(t)
         else:
-            req_val = [useful_functions.pose_from_transform(t),useful_functions.pose_from_transform(t)]
+            req_val = [useful_functions.sixd_pose_from_transform(t),useful_functions.sixd_pose_from_transform(t)]
             if obj_type == "freight":
                 dof_values = get_three_dof_pose(t)
                 t = np.eye(4)
@@ -226,7 +226,7 @@ def get_env_state_from_msg(env_msg):
                 rot_z = np.eye(4)
                 rot_z[:3,:3] = rotationMatrixFromAxisAngle([0,0,dof_values[-1]])
                 
-                req_val = [dof_values,useful_functions.pose_from_transform(t.dot(rot_z))]
+                req_val = [dof_values,useful_functions.sixd_pose_from_transform(t.dot(rot_z))]
         
         obj_dict[obj_name] = req_val
 
@@ -252,7 +252,7 @@ def get_pose_stamped_for_goals(structure_name,sim_object):
         goal_dict[str(goal.GetName())] = pose_stamped
 
     with open(Config.ROS_WS_DIR+"{}.p".format(structure_name),"wb") as f:
-        cPickle.dump(goal_dict,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(goal_dict,f, )
         f.close()
 
 def post_process_traj(traj,obj_list):
@@ -450,7 +450,7 @@ if __name__ == "__main__":
         if not os.path.exists(Config.DATA_MISC_DIR+env_name):
             os.makedirs(Config.DATA_MISC_DIR+env_name)
 
-        cPickle.dump(final_data,open(Config.DATA_MISC_DIR+env_name+ "/{}_data.p".format(env_name),"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(final_data,open(Config.DATA_MISC_DIR+env_name+ "/{}_data.p".format(env_name),"wb"), )
         print("File Saved")
 
         # for traj_file in tqdm.tqdm(trajectories):

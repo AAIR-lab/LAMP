@@ -1,19 +1,23 @@
 from src.data_structures.BinnedEnvState import BinnedEnvState
-from openravepy import *
 from Config import Config
 import numpy as np
-import cPickle
+import sys   
 import tqdm
 import time
 import useful_functions
 
+import pickle
+
 class DataAugmenter(object):
-    def __init__(self,env_name,itteration_count = None,num_robots=1):
+    def __init__(self,env_name,itteration_count = None,num_robots=1, key_string_set=set([])):
         self.env_name = env_name
         print(self.env_name)
-        self.file_name = env_name+"_data.p"
+        self.file_name = env_name+"_data" + Config.PICKLE_SUFFIX
         self.outliers = []
         self.data,self.object_list = self.load_data()
+        if len(key_string_set) > 0:
+            new_object_list = [o for o in self.object_list if o.split("_")[0] in key_string_set]
+            self.object_list = new_object_list
         if itteration_count is not None:
             self.itteration_count = itteration_count
         else:
@@ -24,14 +28,19 @@ class DataAugmenter(object):
         
     def load_data(self):
         print("loading {} data".format(self.env_name))
-        data_load = cPickle.load(open(Config.DATA_MISC_DIR+self.env_name+"/"+self.file_name))
+        with open(Config.DATA_MISC_DIR+self.env_name+"/"+self.file_name,"rb") as f:
+            data_load = useful_functions.load_pickle(f)
+            f.close()
+
         data = data_load["env_states"]
 
-        object_list = cPickle.load(open(Config.DATA_MISC_DIR + self.env_name + "/{}_object_list.p".format(self.env_name),"rb"))
+        with open(Config.DATA_MISC_DIR + self.env_name + "/{}_object_list{}".format(self.env_name,Config.PICKLE_SUFFIX),"rb") as f:
+            object_list = useful_functions.load_pickle(f)
+            f.close()
 
-        return data, object_list
+        return data, list(object_list)
 
-    def augment_data(self,trajectories,object_pair = None):
+    def augment_data(self,trajectories):
         i = 0
         print("augmenting {} data file".format(self.env_name))
         pbar = tqdm.tqdm(total = self.itteration_count)
@@ -41,10 +50,9 @@ class DataAugmenter(object):
             binned_state_list = []
             for j in range((np.shape(data[i]))[0]):
                 env_state = data[i][j]
-                object_names = []
-                for object_name in env_state.object_dict.keys():
-                    object_names.append(object_name)
+                object_names = [_ for _ in self.object_list if _ not in Config.NON_RELATION_OBJECTS]
                 object_names.sort()
+                # object_names = object_names[::-1]
                 relative_object_dict = {}
                 object_pair_list = []
                 for a,obj1 in enumerate(object_names):
@@ -52,9 +60,6 @@ class DataAugmenter(object):
                     if obj1_type not in Config.NON_RELATION_OBJECTS:
                         for b, obj2 in enumerate(object_names):
                             obj2_type = obj2.split("_")[Config.OBJ_TYPE_IND]
-                            if object_pair is not None:
-                                if obj1_type not in object_pair and obj2_type not in object_pair:
-                                    continue
                             if obj2 != obj1 and self.filter(obj1_type,obj2_type) and frozenset([obj1,obj2]) not in object_pair_list:
                                 object_pair_list.append(frozenset([obj1,obj2]))
                                 if (obj1_type not in Config.ROBOT_TYPES and obj2_type not in Config.ROBOT_TYPES) or (obj1_type in Config.ROBOT_TYPES and obj2_type in Config.ROBOT_TYPES):
@@ -83,9 +88,6 @@ class DataAugmenter(object):
 
                     for sec_object in relative_transform_dict.keys():
                         sec_type = sec_object.split("_")[Config.OBJ_TYPE_IND]
-                        if object_pair is not None:
-                            if prim_type not in object_pair and sec_type not in object_pair:
-                                continue
                         if sec_type in Config.ROBOT_TYPES:
                             sec_pose = env_state.object_dict[sec_object][1]
                         else:
@@ -122,7 +124,7 @@ class DataAugmenter(object):
         
         pbar.close()
         time.sleep(5)
-        cPickle.dump(final_binned_data,open(Config.DATA_MISC_DIR+self.env_name+"/" +"binned_"+self.file_name ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(final_binned_data,open(Config.DATA_MISC_DIR+self.env_name+"/" +"binned_"+self.file_name ,"wb"),protocol=Config.PICKLE_PROTOCOL )
         print("binned {} saved".format(self.env_name))   
 
     def filter(self,obj1,obj2):

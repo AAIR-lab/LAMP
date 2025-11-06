@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import argparse
 from Config import Config
 import csv
@@ -119,6 +120,7 @@ if __name__ == '__main__':
         seed = int(args.prefix)
 
     np.random.seed(int(seed))
+    random.seed(int(seed))
     print("SEED ---> {}".format(seed))
     
     if R is not None:

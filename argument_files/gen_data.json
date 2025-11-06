@@ -2,7 +2,8 @@
     "Keva": {
         "general": {
             "robot": "MagicGripper",
-            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"]
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"],
+            "random_count": 20
         },
         "problems": {
             "env1":{
@@ -125,7 +126,8 @@
         "general": {
             "robot": "Fetch",
             "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8"],
-            "object_count": 1
+            "object_count": 1,
+            "random_count": 50
         },
         "problems": {
             "env1":{
@@ -178,7 +180,8 @@
         "general": {
             "robot": "MagneticGripper",
             "env_list": ["env1", "env2"],
-            "object_count": 1
+            "object_count": 1,
+            "random_count": 250
         },
         "problems": {
             "env1":{
@@ -194,7 +197,8 @@
     "Jenga": {
         "general": {
             "robot": "Fetch",
-            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"]
+            "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8", "env11", "env12", "env13", "env14", "env15", "env16", "env17", "env18"],
+            "random_count": 20
         },
         "problems": {
             "env1":{
@@ -313,7 +317,8 @@
         "general": {
             "robot": "Fetch",
             "env_list": ["env1", "env2","env3", "env4"],
-            "object_count": 1
+            "object_count": 1,
+            "random_count": 25
         },
         "problems": {
             "env1": {

@@ -1,28 +1,55 @@
-services:
- container:
-   # build: .
-   image: lamp:latest
-   privileged: true
-   tty: true
-   network_mode: "host"
-   environment:
-     - DISPLAY=${DISPLAY}
-     - NVIDIA_DISABLE_REQUIRE=1
-     - NVIDIA_VISIBLE_DEVICES=all
-     - NVIDIA_DRIVER_CAPABILITIES=all
-   # user: 1000:1000    
-   volumes:
-     - /tmp/.X11-unix:/tmp/.X11-unix
-     - ${HOME}/.Xauthority:/root/.Xauthority
-     - ${PWD}:/workspaces/LAMP
-    
-   working_dir: /workspaces/LAMP/
+# services:
+#  openrave:
+#    # build: .
+#    image: lamp:latest
+#    privileged: true
+#    tty: true
+#    network_mode: "host"
+#    environment:
+#      - DISPLAY=${DISPLAY}
+#      - NVIDIA_DISABLE_REQUIRE=1
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=all
+#    # user: 1000:1000    
+#    volumes:
+#      - /tmp/.X11-unix:/tmp/.X11-unix
+#      - ${HOME}/.Xauthority:/root/.Xauthority
 
-   runtime: nvidia
-   deploy:
-     resources:
-       reservations:
-         devices:
-           - driver: nvidia
-             count: 1
-             capabilities: [gpu]
+#    runtime: nvidia
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]
+version: '2'
+services:
+  novnc:  
+    image: theasp/novnc:latest
+    environment:
+      # Adjust to your screen size
+    - DISPLAY_WIDTH=1920
+    - DISPLAY_HEIGHT=1080
+    - RUN_XTERM=no
+    ports:
+      - 8080:8080 #host_port:container_port
+
+  openrave:
+   # build: .
+    image: lamp:latest
+    environment:
+      - DISPLAY=novnc:0.0
+      #  - NVIDIA_DISABLE_REQUIRE=1
+      #  - NVIDIA_VISIBLE_DEVICES=all
+      #  - NVIDIA_DRIVER_CAPABILITIES=all
+    # user: 1000:1000    
+    depends_on:
+      - novnc
+    tty: true
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/root/.Xauthority
+      - ${PWD}:/workspaces/LAMP
+    
+    working_dir: /workspaces/LAMP/

@@ -3,7 +3,6 @@ import sys
 import tqdm
 import copy
 import argparse
-import cPickle
 
 def get_parent_with_file(file_name):
     current_dir = os.getcwd()
@@ -24,6 +23,8 @@ from src.data_structures.ParameterizedLiftedRelation import ParameterizedLiftedR
 from src.data_structures.ChangedRelations import ChangedRelations
 from src.data_structures.TransitionGraph import TransitionGraph
 from Config import Config
+
+import pickle
 
 class TransitionClusters():
     file_prefix = ""
@@ -130,21 +131,21 @@ class TransitionClusters():
 
     @staticmethod
     def load_clusters():
-        with open(Config.DATA_MISC_DIR+TransitionClusters.file_prefix+"transition_clusters.p","rb") as f:
-            transition_clusters = cPickle.load(f)
+        with open(Config.DATA_MISC_DIR+TransitionClusters.file_prefix+"transition_clusters"+Config.PICKLE_SUFFIX,"rb") as f:
+            transition_clusters = useful_functions.load_pickle(f)
             f.close()
         
         return transition_clusters
 
     @staticmethod
     def save_clusters(transition_clusters):
-        with open(Config.DATA_MISC_DIR+TransitionClusters.file_prefix+"transition_clusters.p","wb") as f:
-            cPickle.dump(transition_clusters,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+TransitionClusters.file_prefix+"transition_clusters"+Config.PICKLE_SUFFIX,"wb") as f:
+            pickle.dump(transition_clusters,f,protocol=Config.PICKLE_PROTOCOL )
             f.close()
 
     @staticmethod
     def get_clusters(transitions=None):
-        exists = os.path.isfile(Config.DATA_MISC_DIR+TransitionClusters.file_prefix+"transition_clusters.p")
+        exists = os.path.isfile(Config.DATA_MISC_DIR+TransitionClusters.file_prefix+"transition_clusters"+Config.PICKLE_SUFFIX)
         if not exists or TransitionClusters.force_generation:
             if transitions is None:
                 TransitionGraph.set_params(TransitionClusters.file_prefix,TransitionClusters.force_generation)

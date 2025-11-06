@@ -84,8 +84,8 @@ class environment():
         transform = matrixFromPose(pose)
         return transform
 
-    def get_pose_from_transform(self,transform):
-        # print('last@get_pose_from_transform')
+    def get_sixd_pose_from_transform(self,transform):
+        # print('last@get_sixd_pose_from_transform')
         pose = poseFromMatrix(transform)
         quat = list(pose[1:4])
         quat.append(pose[0])
@@ -101,11 +101,11 @@ class environment():
                 obj_name = obj.GetName()
 
                 if obj_name != "gripper":
-                    obj_state = self.get_pose_from_transform(obj.GetTransform())
+                    obj_state = self.get_sixd_pose_from_transform(obj.GetTransform())
                 else:
                     obj_state = self.robot.GetActiveDOFValues()
                 
-                obj_base_pose = self.get_pose_from_transform(obj.GetTransform())
+                obj_base_pose = self.get_sixd_pose_from_transform(obj.GetTransform())
 
                 object_dict[obj_name] = [None, obj_state, obj_base_pose]
 

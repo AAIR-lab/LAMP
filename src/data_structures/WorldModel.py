@@ -1,6 +1,5 @@
 import os
 import sys
-import cPickle
 import copy
 import argparse
 from itertools import product
@@ -25,6 +24,8 @@ from src.utilities.TransitionClusters import TransitionClusters
 from src.data_structures.TransitionGraph import TransitionGraph
 from src.data_structures.PDDLAction import LiftedPDDLAction
 import useful_functions
+
+import pickle
 
 class WorldModel():
     file_prefix = ""
@@ -111,34 +112,34 @@ class WorldModel():
     @staticmethod
     def load_model(model_num=1):
         name = "{}{}_{}".format(WorldModel.file_prefix,Config.DOMAIN_NAME,model_num)
-        with open(Config.DATA_MISC_DIR+name+".p","rb") as f:
-            model = cPickle.load(f)
+        with open(Config.DATA_MISC_DIR+name+Config.PICKLE_SUFFIX,"rb") as f:
+            model = useful_functions.load_pickle(f)
             f.close()
         
         return model
 
     @staticmethod
     def save_model(model,model_num=1,name=None):
-        with open(Config.DATA_MISC_DIR+WorldModel.file_prefix+"{}_{}.p".format(Config.DOMAIN_NAME,model_num),"wb") as f:
-            cPickle.dump(model,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+WorldModel.file_prefix+"{}_{}{}".format(Config.DOMAIN_NAME,model_num,Config.PICKLE_SUFFIX),"wb") as f:
+            pickle.dump(model,f,protocol=Config.PICKLE_PROTOCOL )
             f.close()
 
         if model_num == 0:
-            with open(Config.DATA_MISC_DIR+WorldModel.file_prefix+"{}_{}.p".format(Config.DOMAIN_NAME,1),"wb") as f:
-                cPickle.dump(model,f,protocol=cPickle.HIGHEST_PROTOCOL)
+            with open(Config.DATA_MISC_DIR+WorldModel.file_prefix+"{}_{}{}".format(Config.DOMAIN_NAME,1,Config.PICKLE_SUFFIX),"wb") as f:
+                pickle.dump(model,f,protocol=Config.PICKLE_PROTOCOL )
                 f.close()
         
         if name is not None:
             if not os.path.exists(Config.DATA_MISC_DIR+"{}problem_models".format(WorldModel.file_prefix)):
                 os.makedirs(Config.DATA_MISC_DIR+"{}problem_models".format(WorldModel.file_prefix))
 
-            with open(Config.DATA_MISC_DIR+"{}problem_models/".format(WorldModel.file_prefix)+"{}_{}.p".format(Config.DOMAIN_NAME,name),"wb") as f:
-                cPickle.dump(model,f,protocol=cPickle.HIGHEST_PROTOCOL)
+            with open(Config.DATA_MISC_DIR+"{}problem_models/".format(WorldModel.file_prefix)+"{}_{}{}".format(Config.DOMAIN_NAME,name,Config.PICKLE_SUFFIX),"wb") as f:
+                pickle.dump(model,f,protocol=Config.PICKLE_PROTOCOL)
                 f.close()
 
     @staticmethod
     def get_model(model_num=1):
-        exists = os.path.isfile(Config.DATA_MISC_DIR+WorldModel.file_prefix+"{}_{}.p".format(Config.DOMAIN_NAME,model_num))
+        exists = os.path.isfile(Config.DATA_MISC_DIR+WorldModel.file_prefix+"{}_{}{}".format(Config.DOMAIN_NAME,model_num,Config.PICKLE_SUFFIX))
         if WorldModel.force_generation or not exists:
             return WorldModel.generate_model()
         else:
@@ -209,7 +210,7 @@ class WorldModel():
 
         # object_list = useful_functions.get_object_types_from_rcr_dict(rcrs)
         object_list = TrajAbstracter.object_names
-        relations = useful_functions.get_lifted_relations_dict(object_list,rcrs)
+        relations = useful_functions.get_lifted_relations_dict(rcrs)
 
         actions = [LiftedPDDLAction.get_action_from_cluster(list(cluster),added_relations) for cluster in og_clusters.values()]
         low_level_transitions=[]
@@ -247,6 +248,7 @@ if __name__ == "__main__":
     argParser.add_argument(     "--prefix",                     help = "prefix to use",                          nargs='?',default=0)
     argParser.add_argument("--total_traj_count",         help = "total num of demonstrations",          nargs="?")
     argParser.add_argument("-f","--force",                     help = "force_generation of model",           action="store_false")
+    argParser.add_argument("-g","--gen_model",                     help = "generate only model",           action="store_true")
 
     args, unknown_args = argParser.parse_known_args()
 
@@ -256,12 +258,18 @@ if __name__ == "__main__":
     force = not (args.force)
     prefix = int(args.prefix)
     env_list = args.name
+    gen_model = args.gen_model
+    
     if args.total_traj_count is not None:
         total_traj_count = int(args.total_traj_count.split(".")[0])
 
     file_prefix = "{}_{}_".format(total_traj_count,prefix)
 
     WorldModel.set_params(file_prefix,force)
+
+    if gen_model:
+        WorldModel.generate_model()
+
     model = WorldModel.get_model()
     print(model.get_domain_pddl())
     WorldModel.save_model(model,0)

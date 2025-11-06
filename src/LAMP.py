@@ -1,6 +1,6 @@
 from useful_functions import *
 from Config import Config
-import cPickle 
+import pickle 
 import os
 import sys
 import tqdm
@@ -10,6 +10,7 @@ import shutil
 import json
 import heapq
 from itertools import product
+import json
 
 from src.utilities.Discretizer import Discretizer
 from src.data_structures.TransitionGraph import TransitionGraph 
@@ -215,11 +216,11 @@ class LAMP(object):
             if i not in action_instance_list:
                 action_instance_list[i] = {}
 
-            traj,grab_bool,(rel,instance,instance_count),rob,req_grounded_pose,static_object, eef_transform, objects_in_collision_list = grounded_action.compute_refinement(env_state=env_state,
-                                                                                                                                                                            sim_object=self.sim_object,
-                                                                                                                                                                            previous_instances=action_instance_list[i],
-                                                                                                                                                                            compute_motion_plan = self.compute_motion_plan,
-                                                                                                                                                                            action_info = action_info)
+            traj,grab_bool,(rel,instance,instance_count),rob,static_object, eef_transform = grounded_action.compute_refinement(env_state=env_state,
+                                                                                                                               sim_object=self.sim_object,
+                                                                                                                               previous_instances=action_instance_list[i],
+                                                                                                                               compute_motion_plan = self.compute_motion_plan,
+                                                                                                                               action_info = action_info)
             if rel is None and instance is None:
                 if i != 0:
                     action_instance_list[i] = {}
@@ -278,16 +279,9 @@ class LAMP(object):
                     elif relation.parameter2.split("_")[Config.OBJ_TYPE_IND] not in Config.IMMOVABLE_OBJECTS and relation.parameter2_type not in Config.ROBOT_TYPES.keys():
                         obj_name = relation.parameter2
                         break
-                if type(grab_bool) == list:
-                    self.sim_object.execute_refinement(robot=rob,traj=False)
-                    self.sim_object.execute_refinement(robot=rob,traj=grab_bool[1])
-                    env_state_to_evaluate = self.sim_object.execute_refinement(robot=rob,traj=grab_bool[0],obj_name=obj_name,delta_mp=True)
 
-                    self.sim_object.set_env_state(current_env_state)
-                    env_state = self.sim_object.execute_refinement(robot=rob,traj=grab_bool[0],obj_name=obj_name)
-                else:
-                    env_state_to_evaluate = self.sim_object.execute_refinement(robot=rob,traj=grab_bool,obj_name=obj_name)
-                    env_state = env_state_to_evaluate
+                env_state_to_evaluate = self.sim_object.execute_refinement(robot=rob,traj=grab_bool,obj_name=obj_name)
+                env_state = env_state_to_evaluate
                     
             grabbed_object = obj_name
             
@@ -307,7 +301,7 @@ class LAMP(object):
             for re in grounded_action.effect.add_set:
                 if re not in next_state.true_set:
                     validation_flag = False
-                    print("{} not in add".format(re))
+                    # print("{} not in add".format(re))
             
             if validation_flag:
                 last_refined_state = next_state
@@ -324,16 +318,10 @@ class LAMP(object):
                                 if plank_num not in kept_planks_set:
                                     newly_kept_plank.add(plank_num)
                     
-                    if len(objects_in_collision_list) == 0:
-                        for p in newly_kept_plank:
-                            if not (Config.PLANKS_PROBLEM_ORDER[Config.DOMAIN_NAME][self.test_structure][p].issubset(kept_planks_set)):
-                                validation_flag = False
-                                return validation_flag, -1, relations_to_learn, [], grounded_action.lifted_action_id, required_planks, state_action_mapping[grounded_action], i+1, env_state_list
-                    else:
-                        validation_flag = False
-                        plank_to_keep = self.get_plank_to_be_kept(rob,env_state)
-                        required_planks = self.get_collision_object_tuple(plank_to_keep,objects_in_collision_list)              
-                        return validation_flag, 2, relations_to_learn, [], grounded_action.lifted_action_id, required_planks, state_action_mapping[grounded_action], i+1, env_state_list
+                    for p in newly_kept_plank:
+                        if not (Config.PLANKS_PROBLEM_ORDER[Config.DOMAIN_NAME][self.test_structure][p].issubset(kept_planks_set)):
+                            validation_flag = False
+                            return validation_flag, -1, relations_to_learn, [], grounded_action.lifted_action_id, required_planks, state_action_mapping[grounded_action], i+1, env_state_list
             
                     kept_planks_set = copy.deepcopy(kept_planks_set.union(newly_kept_plank))
                     
@@ -368,7 +356,7 @@ class LAMP(object):
                 refined_action_counts.append(i)
 
             exact_current_env_state = self.sim_object.get_current_state()
-            refined_plan.append((grounded_action.lifted_action_id,rob,traj,grab_bool,obj_name,req_grounded_pose,exact_current_env_state,grabbed_object,static_object,rel,eef_transform))
+            refined_plan.append((grounded_action.lifted_action_id,rob,traj,grab_bool,obj_name,exact_current_env_state,grabbed_object,static_object,rel,eef_transform))
             env_state_list.append(env_state)
         
         if validation_flag:
@@ -397,13 +385,6 @@ class LAMP(object):
             else:
                 return validation_flag, 2, relations_to_learn, [], plan[refined_action_count_index].lifted_action_id, required_planks, None, i+1, env_state_list
 
-    def get_collision_object_tuple(self,plank_to_keep,objects_in_collision_list):
-        collision_object_tuple_set = set([])
-        for obj in objects_in_collision_list:
-            collision_object_tuple_set.add(tuple([plank_to_keep,obj]))
-        
-        return collision_object_tuple_set
-    
     def get_plank_to_be_kept(self,rob,env_state):
         rob_id = rob.id
         grabbed_flag = getattr(env_state,"grabbed_flag_{}".format(rob_id))
@@ -512,7 +493,7 @@ class LAMP(object):
     
     def execute_ll_plan(self,ll_plan):        
         for i,ll_transition in enumerate(ll_plan):
-            action_id,rob,target_pose,grab_bool,object_to_grab,req_grounded_pose,exact_current_env_state,grabbed_object,static_object,rel, eef_transform = ll_transition
+            action_id,rob,target_pose,grab_bool,object_to_grab,exact_current_env_state,grabbed_object,static_object,rel, eef_transform = ll_transition
             if type(target_pose) == list:
                 if len(target_pose) < 4:
                     traj = None
@@ -566,13 +547,13 @@ class LAMP(object):
             "traj_config": traj_config,
             "objects_to_move": objects_to_move,
         }
-        with open(Config.PROBLEM_STATES_DIR+"{}_problem.p".format(prefix),"wb") as f:
-            cPickle.dump(data,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.PROBLEM_STATES_DIR+"{}_problem{}".format(prefix,Config.PICKLE_SUFFIX),"wb") as f:
+            pickle.dump(data,f, protocol=Config.PICKLE_PROTOCOL)
             f.close()
 
     def load_ll_state_pair(self,prefix=0):
-        with open(Config.PROBLEM_STATES_DIR+"{}_problem.p".format(prefix)) as f:
-            data = cPickle.load(f)
+        with open(Config.PROBLEM_STATES_DIR+"{}_problem{}".format(prefix,Config.PICKLE_SUFFIX)) as f:
+            data = pickle.load(f)
             f.close()
         
         return data
@@ -787,7 +768,7 @@ class LAMP(object):
         self.object_name_list = object_name_list
 
         new_actions_learnt_flag = False
-        self.object_dictionary=get_object_dictionary(object_name_list) 
+        self.object_dictionary=get_object_dictionary(self.object_name_list) 
 
         model_num = min(WorldModel.get_latest_model_num(), model_num)
         init_model_num = copy.deepcopy(model_num)
@@ -834,7 +815,7 @@ class LAMP(object):
         object_name_list = get_object_list_from_env_state(init_env_state,objects_not_found)
         self.init_env_state = init_env_state
         self.goal_env_state = goal_env_state
-        if self.sim_object.visualize:
+        if self.sim_object.visualize and self.sim_object.viewer is not None:
             if Config.DOMAIN_NAME == "Keva":
                 self.sim_object.set_camera_wrt_obj("yumi",1)
             elif Config.DOMAIN_NAME == "CafeWorld":
@@ -880,7 +861,7 @@ class LAMP(object):
             if self.planner == "KP":
                 kp_flag = True
             
-            self.goal_relations, self.goal_aux_list = get_lifted_relations_in_state(goal_env_state,self.og_lifted_relations_dict)
+            self.goal_relations, self.goal_aux_list = get_lifted_relations_in_state(goal_env_state,self.og_lifted_relations_dict,self.object_dictionary)
             
             replan = True
             while replan:
@@ -1092,8 +1073,8 @@ class LAMP(object):
             self.world_model.save_domain_file(domain_name=self.pddl_domain_name)
 
             print("saving critical regions data")
-            with open(Config.DATA_MISC_DIR+self.file_prefix+"rcr_indices.p" ,"wb") as f:
-                cPickle.dump(self.data,f,protocol=cPickle.HIGHEST_PROTOCOL)
+            with open(Config.DATA_MISC_DIR+self.file_prefix+"rcr_indices"+Config.PICKLE_SUFFIX ,"wb") as f:
+                pickle.dump(self.data,f,protocol=Config.PICKLE_PROTOCOL)
                 f.close()
                     
         log_dict = {

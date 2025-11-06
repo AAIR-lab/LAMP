@@ -32,6 +32,8 @@ from src.data_structures.PDDLTrajectory import PDDLTrajectory
 import useful_functions
 from Config import Config
 
+import pickle
+
 class TrajAbstracter():
     file_prefix = ""
     rcr_data = None
@@ -64,7 +66,7 @@ class TrajAbstracter():
 
         if lifted_relations_dict is None:
             if TrajAbstracter.relations is None:
-                TrajAbstracter.relations = useful_functions.get_lifted_relations_dict(TrajAbstracter.object_names,TrajAbstracter.rcr_data)
+                TrajAbstracter.relations = useful_functions.get_lifted_relations_dict(TrajAbstracter.rcr_data)
 
             lifted_relations_dict = TrajAbstracter.relations
 
@@ -77,21 +79,21 @@ class TrajAbstracter():
 
     @staticmethod
     def save_abstract_traj(env_name,data):
-        with open(Config.DATA_MISC_DIR+env_name+"/{}_abstracted_data.p".format(env_name), "wb") as f:
-            cPickle.dump(data,f,protocol=cPickle.HIGHEST_PROTOCOL)
+        with open(Config.DATA_MISC_DIR+env_name+"/{}_abstracted_data".format(env_name,Config.PICKLE_SUFFIX), "wb") as f:
+            pickle.dump(data,f, protocol=Config.PICKLE_PROTOCOL)
             f.close()
 
     @staticmethod
     def load_abstract_traj(env_name):
-        with open(Config.DATA_MISC_DIR+env_name+"/{}_abstracted_data.p".format(env_name), "rb") as f:
-            data = cPickle.load(f)
+        with open(Config.DATA_MISC_DIR+env_name+"/{}_abstracted_data".format(env_name,Config.PICKLE_SUFFIX), "rb") as f:
+            data = useful_functions.load_pickle(f)
             f.close()
 
         return data
 
     @staticmethod
     def get_abstract_traj(env_name):
-        if os.path.isfile(Config.DATA_MISC_DIR + "{}/{}_abstracted_traj.p".format(env_name)):
+        if os.path.isfile(Config.DATA_MISC_DIR + "{}/{}_abstracted_traj".format(env_name,Config.PICKLE_SUFFIX)):
             return TrajAbstracter.load_abstract_traj(env_name)
         
         return TrajAbstracter.generate_abstract_trajectories(env_name)
@@ -125,7 +127,7 @@ class TrajAbstracter():
 
         if lifted_relations_dict is None:
             if TrajAbstracter.relations is None:
-                TrajAbstracter.relations = useful_functions.get_lifted_relations_dict(object_name_list,TrajAbstracter.rcr_data)
+                TrajAbstracter.relations = useful_functions.get_lifted_relations_dict(TrajAbstracter.rcr_data)
 
             lifted_relations_dict = TrajAbstracter.relations
             

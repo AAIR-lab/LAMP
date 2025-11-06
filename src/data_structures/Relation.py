@@ -5,12 +5,14 @@ import copy
 import useful_functions
 from itertools import product
 from src.GMM.MVGFit import MultiVariateGaussian
-
-Object = Config.get_simulator_module("Object").Object
+import math
+import random
+import os
+import json
 
 @functools.total_ordering
 class Relation(object):    
-    def __init__(self, parameter1_type, parameter2_type, cr, region, discretizer, mvg=None, sampling_region_list=[]): 
+    def __init__(self, parameter1_type, parameter2_type, cr, region, discretizer, mvg=None, sampling_region_list=[], useful_components_list=None): 
         self.parameter1_type = parameter1_type
         self.parameter2_type = parameter2_type
         self.cr = cr
@@ -18,12 +20,21 @@ class Relation(object):
         self.sampling_region_list = sampling_region_list
         self.discretizer = discretizer
         self.mvg = mvg
+        self.useful_components_list = useful_components_list
         self.get_sampling_region_list()
         self.get_mvg()
+        self.get_useful_components()
+
+    def get_useful_components(self):
+        if self.useful_components_list is None:
+            if self.mvg is not None:
+                self.useful_components_list = [_ for _,weight in zip(range(len(self.sampling_region_list)), self.mvg.gaussian.weights_) if weight > Config.WEIGHT_THRESHOLD]
+            else:
+                self.useful_components_list = range(len(self.sampling_region_list))
 
     def get_sampling_region_list(self):
         if self.sampling_region_list == []:
-            self.sampling_region_list = copy.deepcopy(self.region)
+            self.sampling_region_list = copy.deepcopy([tuple(_) for _ in self.region])
 
     def get_mvg(self):
         if self.cr != 0 and self.mvg is None:  
@@ -32,14 +43,9 @@ class Relation(object):
 
     def get_fit_samples(self): 
         samples = [] 
+        samples_needed_per_region = int(math.ceil(min(500,10000/len(self.region))))
         for region in self.sampling_region_list:
-            for _ in range(1000): 
-                if len(self.sampling_region_list) > 1:
-                    ind = np.random.choice(len(self.sampling_region_list))
-                else:
-                    ind = 0
-                region = self.sampling_region_list[ind]
-
+            for _ in range(samples_needed_per_region): 
                 region_to_use = region[:6]
                 samples.append(self.discretizer.convert_sample(region_to_use, is_relative = True))
         
@@ -70,6 +76,8 @@ class Relation(object):
             return False
         
     def __lt__(self,o): 
+        if self.cr != o.cr:
+            return self.cr < o.cr
         return self.__str__() < o.__str__()
         
     def __hash__(self):
@@ -101,6 +109,7 @@ class GroundedRelation(Relation):
         self.region_to_use  = None
         self.mapping = dict.fromkeys([self.parameter1,self.parameter2], [])
         self.current_mapping_pair = None
+        self.sampling_region_candidates = None
 
         if len(object_list) > 0:
             self.get_mapping(self.filter_mapping_options(object_list))
@@ -204,7 +213,7 @@ class GroundedRelation(Relation):
             return hash("({}_{}_{} {} {})".format(self.parameter1_type, self.parameter2_type, str(len(self.region)), parameter1_str, parameter2_str))        
 
     def get_lifted_relation(self):
-        return Relation(self.parameter1_type,self.parameter2_type,self.cr, self.region,self.discretizer,self.mvg, self.sampling_region_list)
+        return Relation(self.parameter1_type,self.parameter2_type,self.cr, self.region,self.discretizer,self.mvg, self.sampling_region_list, self.useful_components_list)
 
     def evaluate_in_ll_state(self,ll_state):
         if self.current_mapping_pair is None:
@@ -308,7 +317,7 @@ class GroundedRelation(Relation):
         current_link1_pose = object_dic[object_name]
         if object_name.split("_")[Config.OBJ_TYPE_IND] in Config.ROBOT_TYPES.keys():
             current_link1_pose = object_dic[object_name][1]
-        current_link1_transform = useful_functions.transform_from_pose(current_link1_pose)
+        current_link1_transform = useful_functions.transform_from_sixd_pose(current_link1_pose)
         return current_link1_transform.dot(lifted_transform)
     
     def get_relative_pose(self, env_state, mapping_pair=None):
@@ -336,7 +345,7 @@ class GroundedRelation(Relation):
 
     def get_next_region(self):
         if self.cr!= 0: 
-            for r, region in enumerate(self.sampling_region_list): 
+            for r, region in enumerate(self.useful_components_list): 
                 yield r
         else:
             yield 0
@@ -352,7 +361,7 @@ class GroundedRelation(Relation):
         else: 
             return region 
         
-    def init_sample_generator(self,env_state,sim_object, region,action_info):
+    def init_sample_generator(self,env_state,sim_object,region,action_info):
         samples = [] 
         self.env_state = env_state
         self.sim_object = sim_object
@@ -387,7 +396,8 @@ class GroundedRelation(Relation):
 
         env_state = self.env_state 
         sim_object = self.sim_object 
-        region = self.region[self.region_to_use]
+        component_to_use = self.useful_components_list[self.region_to_use]
+        region = self.sampling_region_list[component_to_use]
         switch = False
         object_with_transform = param2
         static_object = param1
@@ -408,7 +418,7 @@ class GroundedRelation(Relation):
         for obj in env_state.object_dict.keys():
             if (self.parameter1_type == Config.BASE_NAME or self.parameter2_type == Config.BASE_NAME) and (self.parameter1_type != Config.GRIPPER_NAME and self.parameter2_type != Config.GRIPPER_NAME):
                 if Config.BASE_NAME in obj:
-                    t_robot = useful_functions.transform_from_pose(env_state.object_dict[obj][1])
+                    t_robot = useful_functions.transform_from_sixd_pose(env_state.object_dict[obj][1])
                     robot_type = Config.BASE_NAME          
                     rob_id = obj.split("_")[Config.OBJ_ID_IND]
                     
@@ -416,7 +426,7 @@ class GroundedRelation(Relation):
                 pose = env_state.object_dict[obj]
                 if object_with_transform.split("_")[Config.OBJ_TYPE_IND] in Config.ROBOT_TYPES.keys():
                     pose = env_state.object_dict[obj][1]
-                t_obj = useful_functions.transform_from_pose(pose)
+                t_obj = useful_functions.transform_from_sixd_pose(pose)
         
         if t_robot is None:
             if Config.GRIPPER_NAME in object_with_transform:
@@ -431,7 +441,7 @@ class GroundedRelation(Relation):
         
             for obj in env_state.object_dict.keys():
                 if Config.GRIPPER_NAME in obj and int(obj.split("_")[Config.OBJ_ID_IND]) == rob_id:
-                    t_robot = useful_functions.transform_from_pose(env_state.object_dict[obj][1])
+                    t_robot = useful_functions.transform_from_sixd_pose(env_state.object_dict[obj][1])
                     break
             
             robot_type = Config.GRIPPER_NAME
@@ -451,30 +461,31 @@ class GroundedRelation(Relation):
             # robot = rob
         
         else:
+            sampled_config = []
+            sampled_end_effector_transform = None
+
             sampled_lifted_region = region 
-
             grab_flag = sampled_lifted_region[Config.GRAB_INDEX]
-            sampled_refined_lifted_region = useful_functions.transform_from_pose(self.mvg.sample_from_component(component=self.region_to_use)[0])
-            
-            if switch:
-                sampled_refined_lifted_region = np.linalg.pinv(sampled_refined_lifted_region)
+            sampled_refined_lifted_region_pose = self.mvg.sample_from_component(component=component_to_use)
+            if sampled_refined_lifted_region_pose is not None:
+                sampled_refined_lifted_region = useful_functions.transform_from_sixd_pose(sampled_refined_lifted_region_pose[0])
 
-            sampled_refined_grounded_region = self.get_grounded_pose(sampled_refined_lifted_region,env_state,switch=switch)
+                if switch:
+                    sampled_refined_lifted_region = np.linalg.pinv(sampled_refined_lifted_region)
 
-            relative_t = np.linalg.pinv(t_obj).dot(t_robot)
-            sampled_end_effector_transform = sampled_refined_grounded_region.dot(relative_t)
-            og_end_effector_transform = sampled_end_effector_transform
-            
-            sampled_config = self.get_robot_config(sampled_end_effector_transform, object_with_transform, rob, sim_object)
-             
-            delta_mp = None
-            obj_list = []
-            
-            sampled_config = list(sampled_config)
+                sampled_refined_grounded_region = self.get_grounded_pose(sampled_refined_lifted_region,env_state,switch=switch)
+
+                relative_t = np.linalg.pinv(t_obj).dot(t_robot)
+                sampled_end_effector_transform = sampled_refined_grounded_region.dot(relative_t)
+                
+                sampled_config = self.get_robot_config(sampled_end_effector_transform, object_with_transform, rob, sim_object)
+                
+                sampled_config = list(sampled_config)
+
             sampled_config.extend(Config.SENSOR_COUNT*[0])
             sampled_config[Config.GRAB_INDEX] = grab_flag
 
-        return sampled_config,sampled_lifted_region,object_with_transform,sampled_refined_grounded_region,rob, static_list, sampled_end_effector_transform, obj_list, delta_mp
+        return sampled_config,sampled_lifted_region,object_with_transform,rob, static_list, sampled_end_effector_transform
         
     def switch_check(self,object_with_transform,env_state,mapping_pair=None):
         if mapping_pair is not None:

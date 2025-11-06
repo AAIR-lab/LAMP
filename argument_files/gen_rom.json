@@ -13,7 +13,7 @@
         "general": {
             "env_list": ["env1", "env2", "env3", "env4", "env5", "env6", "env7", "env8"],
              "total_traj_count": 200,
-             "traj_per_env": 0.125
+             "traj_per_env": 0.5
         },
         "problems": {
         }

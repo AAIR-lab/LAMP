@@ -1,6 +1,6 @@
 import os
 import sys
-import cPickle
+import pickle
 from copy import deepcopy
 import argparse
 from itertools import product
@@ -16,7 +16,7 @@ Object = Config.get_simulator_module("Object").Object
 model_gen_utils = Config.get_simulator_module("model_gen_utils")
 
 class Packing(object):
-    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data.p",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name="MagneticGripper"):
+    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name="MagneticGripper"):
         self.sim_object = SimClass(robot_name=robot_name,
                                    visualize=visualize)
 
@@ -106,19 +106,19 @@ class Packing(object):
         else:
             world_T_obj = self.sim_object.get_obj(object_name).get_transform()
             
-        world_T_robot = useful_functions.transform_from_pose(self.sim_object.robot.get_active_dof_values())
+        world_T_robot = useful_functions.transform_from_sixd_pose(self.sim_object.robot.get_active_dof_values())
         robot_T_world = np.linalg.inv(world_T_robot)
 
         obj_T_robot = np.eye(4)
         obj_T_robot[2,3]= self.sim_object.robot.grasping_offset[Config.OBJECT_NAME[0]]
         
-        t1 = self.sim_object.matrixFromAxisAngle([0, 0, -np.pi/4.0])
-        # t2 = self.sim_object.matrixFromAxisAngle([-np.pi, 0, 0])
+        t1 = useful_functions.rotmat_from_rotvec([0, 0, -np.pi/4.0])
+        # t2 = useful_functions.rotmat_from_rotvec([-np.pi, 0, 0])
 
         # obj_T_robot = obj_T_robot.dot(t1).dot(t2)
         obj_T_robot = obj_T_robot.dot(t1)
         t = np.matmul(world_T_obj,obj_T_robot)
-        pose = useful_functions.pose_from_transform(t)
+        pose = useful_functions.sixd_pose_from_transform(t)
         
         return pose
     
@@ -146,9 +146,9 @@ class Packing(object):
 
             grasp_num = np.random.choice(Config.NUM_GRASPS)
             rot_angle = (grasp_num * (2*np.pi) / Config.NUM_GRASPS)
-            rot_z = self.sim_object.matrixFromAxisAngle([0,0,rot_angle])
+            rot_z = useful_functions.rotmat_from_rotvec([0,0,rot_angle])
 
-            t = self.sim_object.matrixFromPose([1,0,0,0,x,y,z])#.dot(rot_z)
+            t = useful_functions.transform_from_sevend_pose([1,0,0,0,x,y,z])#.dot(rot_z)
             t = drop_t.dot(t)
             obj.set_transform(t)
             if not(self.sim_object.collision_check([obj]) and self.obj_checker(obj)):
@@ -262,14 +262,14 @@ class Packing(object):
             droparea = self.sim_object.get_obj(self.drop_name)
             self.drop_randomizer(x_offsets=[0.1,0.1],y_offsets=[0.1,0.1])
             drop_t = droparea.get_transform()
-            drop_pose = useful_functions.pose_from_transform(drop_t)
+            drop_pose = useful_functions.sixd_pose_from_transform(drop_t)
             rcr = [r.region for r in req_relation]
             discretizer = req_relation[0].discretizer
             for obj in self.can_list:
                 sample_flag = True
                 while sample_flag:
                     t = self.sample_goal_pose(object_name=obj.get_name())
-                    object_pose = useful_functions.pose_from_transform(t)
+                    object_pose = useful_functions.sixd_pose_from_transform(t)
                     relative_1 = useful_functions.get_relative_pose(pose1=drop_pose,pose2=object_pose)
                     relative_2 = useful_functions.get_relative_pose(pose1=object_pose,pose2=drop_pose)
 
@@ -316,7 +316,7 @@ class Packing(object):
         color = [0,0.8,1]
         body_name = Config.OBJECT_NAME[0] + "_{}".format(len(self.can_list)+1)
 
-        t = self.sim_object.matrixFromPose([1, 0, 0, 0, 0, 0, -0.5])
+        t = useful_functions.transform_from_sevend_pose([1, 0, 0, 0, 0, 0, -0.5])
         cylinder = Object(model_gen_utils.create_cylinder(self.sim_object.env, body_name, t, [radius, height], color))
 
         self.sim_object.add_obj(cylinder)
@@ -533,7 +533,7 @@ class Packing(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        cPickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list.p" ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
+        pickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list"+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
                 
         print("{} data saved".format(self.env_name))

@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import argparse
 import sys
 import json
@@ -93,7 +94,8 @@ if __name__ == '__main__':
     prefix = int(args.prefix)
     if args.seed is not None:
         np.random.seed(int(args.seed))
-    
+        random.seed(int(args.seed))
+
     load_arguments = args.false_load_arguments
 
     if R is not None:

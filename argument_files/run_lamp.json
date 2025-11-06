@@ -81,7 +81,7 @@
     "CafeWorld":{
         "general":{
             "env_list": ["env1","env2","env3","env4","env5","env6","env7","env8"],
-            "model_num": 1,
+            "model_num": 0,
             "mp_flag": false,
             "planner": "FF",
             "k_plans": 1,

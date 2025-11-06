@@ -51,6 +51,7 @@ if __name__ == "__main__":
     set_y_flag = args.set_y_flag
     complete_random = args.complete_random
     false_load_arguments = args.false_load_arguments
+    random_count = 0
 
     DomainClass = get_domain_class(Config.DOMAIN_NAME)
 
@@ -102,13 +103,6 @@ if __name__ == "__main__":
             object_count = int(object_count)
 
         calls_to_mp = 1
-        if "Keva" in Config.DOMAIN_NAME or "Jenga" in Config.DOMAIN_NAME:
-            random_count = 20
-        elif "Packing" in Config.DOMAIN_NAME:
-            random_count = 250
-        else:
-            random_count = 200
-        
         ref_env = reference_structure_name
         # if reference_structure_name is not None:
         #     ref_env = reference_structure_name[env_num]
@@ -118,7 +112,7 @@ if __name__ == "__main__":
         dg = DomainClass(env_name=name,
                          number_of_configs=random_count,
                          number_of_mp=calls_to_mp,
-                         file_name=name+"_data.p",
+                         file_name=name+"_data",
                          axis_for_offset=axis_for_offset,
                          visualize=visualize,
                          object_count=object_count,
@@ -134,6 +128,7 @@ if __name__ == "__main__":
                          object_list=object_names,
                          set_y=set_y_flag,
                          complete_random=complete_random,
+                         data_gen=True,
                          robot_name=robot)
         
         dg.start(complete_random)            

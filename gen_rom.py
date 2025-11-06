@@ -1,11 +1,13 @@
-from src.utilities.RelativeOccupancyMapping import RelativeOccupancyMap
 import numpy as np
+import random
 import argparse
 import sys
 import os
 import json
 from Config import Config
 from useful_functions import get_argument_dict
+
+from src.utilities.RelativeOccupancyMapping import RelativeOccupancyMap
 
 MOD_NAME = os.path.basename(__file__)[:-3]
 

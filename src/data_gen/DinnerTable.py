@@ -1,5 +1,5 @@
 import numpy as np
-import cPickle
+import pickle
 import tqdm
 import math
 import os
@@ -14,7 +14,7 @@ Object = Config.get_simulator_module("Object").Object
 model_gen_utils = Config.get_simulator_module("model_gen_utils")
 
 class DinnerTable(object):
-    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data.p",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name=Config.ROBOT_NAME):
+    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name=Config.ROBOT_NAME):
         self.sim_object = SimClass(robot_name=robot_name,
                                    visualize=visualize)
 
@@ -171,7 +171,7 @@ class DinnerTable(object):
             if self.grasp_num is None:
                 grasp_num = np.random.choice(Config.NUM_GRASPS)
             rot_angle = (grasp_num * (2*np.pi) / Config.NUM_GRASPS)
-            rot_z = self.sim_object.matrixFromAxisAngle([0,0,rot_angle])
+            rot_z = useful_functions.rotmat_from_rotvec([0,0,rot_angle])
 
             dt = np.eye(4)
             dt[0,3] = -(np.random.uniform(0.1,0.35))
@@ -197,7 +197,7 @@ class DinnerTable(object):
         diff = 0.8
         table = self.sim_object.get_obj(object_name)
         surface_t = table.get_transform()
-        diff_translation_matrix = self.sim_object.matrixFromPose([1,0,0,0,-diff,0,0])
+        diff_translation_matrix = useful_functions.transform_from_sevend_pose([1,0,0,0,-diff,0,0])
 
         valid_pose = None
         count = 0
@@ -206,7 +206,7 @@ class DinnerTable(object):
             t = surface_t.dot(diff_translation_matrix)
             _x = t[0,3]
             _y = t[1,3]
-            _yaw = self.sim_object.axisAngleFromRotationMatrix(t[:3,:3])[-1]
+            _yaw = useful_functions.rotvec_from_rotmat(t[:3,:3])[-1]
             pose = [_x,_y,_yaw]
             self.sim_object.robot.set_active_dof_values(pose)
             count += 1
@@ -258,18 +258,18 @@ class DinnerTable(object):
             world_T_obj = self.sim_object.get_obj(object_name).get_transform()
                         
         self.sim_object.robot.activate_manip_joints()
-        wrist_roll_pose = self.sim_object.robot.get_link_transform('wrist_roll_link')
+        wrist_roll_pose = self.sim_object.robot.get_link_transform('gripper_link')
         gripper_pose = self.sim_object.robot.get_link_transform('gripper_link')
         wrist_pose_wrt_gripper = np.matmul(np.linalg.inv(gripper_pose), wrist_roll_pose)
 
         valid_pose = None
         if "bowl" not in object_name:
-            rot_Z = self.sim_object.matrixFromAxisAngle([0, 0, -np.pi/2])
+            rot_Z = useful_functions.rotmat_from_rotvec([0, 0, -np.pi/2])
             gripper_offset = self.sim_object.robot.grasping_offset[object_name.split("_")[Config.OBJ_TYPE_IND]]
             rot_ang = ((2*np.pi)/Config.NUM_GRASPS)
             # print(rot_ang)
-            obj_T_gripper = self.sim_object.matrixFromPose([1, 0, 0, 0, gripper_offset, 0, self.glass_h/2.0-0.01])
-            rot_mat = self.sim_object.matrixFromAxisAngle([0, 0, rot_ang])
+            obj_T_gripper = useful_functions.transform_from_sevend_pose([1, 0, 0, 0, gripper_offset, 0, self.glass_h/2.0-0.01])
+            rot_mat = useful_functions.rotmat_from_rotvec([0, 0, rot_ang])
 
             grasp_T = world_T_obj.dot(rot_mat).dot(rot_Z).dot(obj_T_gripper)
             grasp_T = np.matmul(grasp_T,wrist_pose_wrt_gripper)
@@ -280,9 +280,9 @@ class DinnerTable(object):
 
         else:
             t = np.eye(4)
-            t1 = self.sim_object.matrixFromPose([1,0,0,0,-0.085,0,0.24])
-            r1 = self.sim_object.matrixFromAxisAngle([0,math.pi/2.0,0])
-            r2 = self.sim_object.matrixFromAxisAngle([math.pi/2.0,0,0])
+            t1 = useful_functions.transform_from_sevend_pose([1,0,0,0,-0.085,0,0.24])
+            r1 = useful_functions.rotmat_from_rotvec([0,math.pi/2.0,0])
+            r2 = useful_functions.rotmat_from_rotvec([math.pi/2.0,0,0])
 
             grasp_T = world_T_obj.dot(t1).dot(r1).dot(r2)
             ik_sols = self.sim_object.robot.get_ik_solutions(grasp_T,collision_fn=self.sim_object.collision_check)
@@ -719,8 +719,8 @@ class DinnerTable(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        cPickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list.p" ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
+        pickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list"+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
                 
         print("{} data saved".format(self.env_name))
 
@@ -773,7 +773,7 @@ class DinnerTable(object):
         color = [0,0.8,1]
         body_name = "glass"+ "_{}".format(self.spawned_object_count+1)
 
-        t = self.sim_object.matrixFromPose([1, 0, 0, 0, 0, 0, -0.5])
+        t = useful_functions.transform_from_sevend_pose([1, 0, 0, 0, 0, 0, -0.5])
         cylinder = Object(model_gen_utils.create_cylinder(self.sim_object.env, body_name, t, [radius, height], color))
   
         self.sim_object.add_obj(cylinder)
@@ -805,7 +805,7 @@ class DinnerTable(object):
     def spawn_bowl(self,name=""):
         body_name = "bowl" + "_{}".format(self.spawned_object_count+1)
 
-        t = self.sim_object.matrixFromPose([1, 0, 0, 0, 0, 0, -0.5])
+        t = useful_functions.transform_from_sevend_pose([1, 0, 0, 0, 0, 0, -0.5])
         bowl = self.sim_object.load_stl_object("bowl", t)
 
         bowl.set_name(body_name)##

@@ -1,6 +1,6 @@
 from Config import Config
 import numpy as np
-import cPickle
+import pickle
 import tqdm
 import time
 from src.data_structures.EnvState import EnvState
@@ -13,7 +13,7 @@ Object = Config.get_simulator_module("Object").Object
 model_gen_utils = Config.get_simulator_module("model_gen_utils")
 
 class Jenga(object):
-    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data.p",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name=Config.ROBOT_NAME):
+    def __init__(self,env_name,number_of_configs=1,number_of_mp=1,axis_for_offset="x",file_name="_data",reference_structure_name=None,visualize=False,object_count=None,random=False,order=False,surface="",objects_in_init_state=0,quadrant=None,grasp_num=None,minimum_object_count=None,mp=True,num_robots=1,structure_dependance=False,object_list=[],experiment_flag=False,real_world_experiment=False,set_y=False,complete_random=False,data_gen=False,robot_name=Config.ROBOT_NAME):
         self.sim_object = SimClass(robot_name=robot_name,
                                    visualize=visualize)
 
@@ -132,13 +132,13 @@ class Jenga(object):
         obj_T_robot = np.eye(4)
         obj_T_robot[1,3]= self.sim_object.robot.grasping_offset[Config.OBJECT_NAME[0]]
         
-        t1 = self.sim_object.matrixFromAxisAngle([ 0, -np.pi/2, 0])
-        t2 = self.sim_object.matrixFromAxisAngle([-np.pi/2, 0, 0])
+        t1 = useful_functions.rotmat_from_rotvec([ 0, -np.pi/2, 0])
+        t2 = useful_functions.rotmat_from_rotvec([-np.pi/2, 0, 0])
 
         obj_T_robot = obj_T_robot.dot(t2).dot(t1)
         t = np.matmul(world_T_obj,obj_T_robot)
 
-        wrist_roll_pose = self.sim_object.robot.get_link_transform('wrist_roll_link')
+        wrist_roll_pose = self.sim_object.robot.get_link_transform('gripper_link')
         gripper_pose = self.sim_object.robot.get_link_transform('gripper_link')
         wrist_pose_wrt_gripper = np.matmul(np.linalg.inv(gripper_pose), wrist_roll_pose)
         t = np.matmul(t,wrist_pose_wrt_gripper)
@@ -184,7 +184,7 @@ class Jenga(object):
             for j in range(self.num_planks_random):
                 i = len(goalLoc_list) + j
                 goalLoc = self.sim_object.get_obj(Config.LOCATION_NAME[0]+"_{}Target_{}".format(i+1))##
-                rot = self.sim_object.matrixFromAxisAngle([ 0, 0, -np.pi/2])
+                rot = useful_functions.rotmat_from_rotvec([ 0, 0, -np.pi/2])
                 t = self.object_randomizer(goalLoc)
                 t = t.dot(rot)
                 t[2,3] += (self.clearance+self.base_offset)
@@ -203,7 +203,7 @@ class Jenga(object):
         return goalLoc_list
 
     def set_random_goalLoc(self,x_offsets=[0.1,0.1],y_offsets=[0.1,0.1]):
-        rot = self.sim_object.matrixFromAxisAngle([ 0, 0, -np.pi/2])
+        rot = useful_functions.rotmat_from_rotvec([ 0, 0, -np.pi/2])
         goalLoc_list = []
         for i in range(self.object_count):
             goalLoc = self.sim_object.get_obj(Config.LOCATION_NAME[-1]+"_{}Target_{}".format(Config.OBJECT_NAME[0].split("_")[Config.OBJ_TYPE_IND],i+1))
@@ -223,7 +223,7 @@ class Jenga(object):
         return goalLoc_list
 
     def set_goalLoc_y(self,current_t):
-        t = self.sim_object.matrixFromAxisAngle([0,0,np.pi/2])
+        t = useful_functions.rotmat_from_rotvec([0,0,np.pi/2])
         final_t = current_t.dot(t)
         final_t[2,3] = (self.clearance+Config.AXIS_MAP["y"] + self.table_h)
 
@@ -470,8 +470,8 @@ class Jenga(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        cPickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list.p" ,"wb"),protocol=cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(final_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.file_name+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
+        pickle.dump(object_data,open(Config.DATA_MISC_DIR+ self.env_name+"/"+ self.env_name + "_object_list"+Config.PICKLE_SUFFIX ,"wb"),protocol=Config.PICKLE_PROTOCOL )
                 
         print("{} data saved".format(self.env_name))
 
@@ -507,7 +507,7 @@ class Jenga(object):
             if str(plank.get_name()).split("_")[Config.OBJ_TYPE_IND] in Config.OBJECT_NAME:
                 t[2,3] = Config.AXIS_MAP["y"] + self.table_h + 0.0005
 
-            t1 = self.sim_object.matrixFromAxisAngle([-np.pi/2, 0, 0])
+            t1 = useful_functions.rotmat_from_rotvec([-np.pi/2, 0, 0])
             t = t.dot(t1)
             plank.set_transform(t)
             # t2 = orpy.matrixFromAxisAngle([0, 0, -np.pi/2])
@@ -618,8 +618,8 @@ class Jenga(object):
             rel_t = np.eye(4)
             rel_t[:3,3] = [0.0265,0.05,0.039+Config.AXIS_MAP["x"]+0.0005]
             pickup_t = self.sim_object.get_obj("pickupstation").get_transform()
-            rot1 = self.sim_object.matrixFromAxisAngle([ 0, 0,-np.pi/2])
-            rot2 = self.sim_object.matrixFromAxisAngle([ 0,-np.pi/2, 0])
+            rot1 = useful_functions.rotmat_from_rotvec([ 0, 0,-np.pi/2])
+            rot2 = useful_functions.rotmat_from_rotvec([ 0,-np.pi/2, 0])
             rel_t = rel_t.dot(rot1).dot(rot2)
             t = pickup_t.dot(rel_t)
             

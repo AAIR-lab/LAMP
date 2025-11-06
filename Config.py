@@ -8,8 +8,13 @@ import numpy as np
 from src.utilities.Discretizer import Discretizer
 import math
 import importlib
+import sys
 
 class Config():
+    PYTHON_VER_INT = int(sys.version.split(".")[0])
+    PICKLE_SUFFIX = ".pkl"
+    PICKLE_PROTOCOL = 2
+    POSE_DEGREE = 6
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/"
     DOMAIN_CONFIG_DIR = ROOT_DIR + "domain_configs/"
     ALT_PLAN_DIR = ROOT_DIR + "plan_files/"
@@ -32,15 +37,14 @@ class Config():
     UNKNOWN_COST = 100
     MAX_IK_ATTEMPTS = 5
     MAX_CALL_COUNTS = 100
-    SAMPLE_COUNT = 3
+    SAMPLE_COUNT = 10
     MP_MAX_COUNT = 5
-    MAX_REGION_SAMPLING_COUNT = 3
+    REGIONS_TO_SAMPLE = 1
     PLANNER_TIME_OUT = 3*3600
     K_PLANS = 50
     SURFACE_NAME = ["surface"]
     PRE_GRAB_CR = 2
     BIN_COUNT = np.array([64,64,64,60,60,60])
-    discretizer = Discretizer(world_n_bins=BIN_COUNT)
     ROBOT_TYPES = {
         "gripper":"manip_joints", 
         "freight":"base_joints"
@@ -57,9 +61,12 @@ class Config():
     OBJ_ID_IND = -1
     CONST_TYPE_IND = -2
     OBJ_TYPE_IND = 0
-    DEFAULT_NUM_COMPONENTS = 10
     SIMULATOR = "openrave"
     SIM_DIR = ROOT_DIR + "simulators/" + SIMULATOR + "/"
+
+    DEFAULT_NUM_COMPONENTS = 10
+    DEF_WEIGHT_CONC_PRIOR = 0.5
+    WEIGHT_THRESHOLD = 0.01
 
     @staticmethod
     def declare_config(domain_name,robot_name=None):
